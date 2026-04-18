@@ -1,253 +1,243 @@
-# AgentLinkedIn PoC+ — 최종 통합 개발 계획
+# AgentLinkedIn — 실행/평가 통합 개발 계획
 
-> Plan A(송채우)의 실행 가능한 PoC 뼈대 + Plan B(이원영)의 핵심 알고리즘 3가지 이식
-
-## 배경 및 목표
-
-Plan A는 1-2주 내 실행 가능한 구조를 갖추고 있으나 에이전트 선택 알고리즘과 메타데이터가 단순하다.
-Plan B는 풍부한 프로덕트 비전(신뢰 점수, 가중치 선택, invoke 패턴)을 갖추나 즉시 구현이 불가능하다.
-
-**핵심 전략**: Plan A 뼈대를 유지하면서 Plan B에서 딱 세 가지만 이식해 데모를 "자동화 스크립트"에서 "지능적 의사결정 시스템"으로 업그레이드한다.
-
-**이식하는 세 가지**:
-1. `scoring.py` — 가중치 기반 스코어링 순수 함수
-2. `InvokeLog` 테이블 + `invoke_agent` MCP Tool
-3. Agent 모델 7개 필드 추가 + seed 등록 시 고정값
-
-**제거 항목** (PoC 오버킬): PostgreSQL, pgvector, Celery/Redis, Docker SDK, 크레딧 시스템, Git 연동, 자동 벤치마크, JWT
+> 기준 문서: `Product.md`, `CLAUDE.md`, `docs/PRD.md`, `docs/TSD.md`, `docs/TEST_CASE.md`, `docs/EVAL_PHASE1.md`
+> 목적: 이미 완료된 구현/평가를 기록하고, Codex가 다음으로 개발해야 할 단계를 Phase별로 관리한다.
 
 ---
 
-## 확정 설계
+## 1. 현재 상태 요약
 
-| 항목 | 결정 |
-|---|---|
-| 범위 | Demo/Portfolio PoC, 1-2주, 로컬 시연 |
-| 프론트엔드 | 없음 — PM agent 터미널 로그(Rich) |
-| 백엔드 | Python + FastAPI + SQLAlchemy 2.0 + Alembic + SQLite (WAL) |
-| Agent 접근 | FastMCP (stdio + SSE :8100) |
-| 스코어링 | 순수 Python 가중치 함수 (pgvector 없음) |
-| 인증 | Agent별 API Key (JWT 없음) |
-| Seed agents | PM Youngsu(오케스트레이터) + Research :8001 + CodeReview :8002 |
+### 완료된 구현
 
----
+- FastAPI 백엔드, SQLAlchemy 모델, SQLite WAL, Alembic 초기 마이그레이션 구현
+- 핵심 모델 구현
+  - `Agent`
+  - `Thread`
+  - `Message`
+  - `InvokeLog`
+- REST API 구현
+  - `POST /api/agents`
+  - `GET /api/agents`
+  - `GET /api/agents/{agent_id}`
+  - `PATCH /api/agents/{agent_id}`
+  - `GET /api/agents/search`
+  - `GET /api/agents/{agent_id}/threads`
+  - `GET /api/threads/{thread_id}`
+- MCP SSE 서버 및 6개 tool 구현
+  - `search_agents`
+  - `get_agent_profile`
+  - `invoke_agent`
+  - `send_outreach`
+  - `get_my_threads`
+  - `submit_review`
+- Seed agent 5개 구현
+  - PM Youngsu
+  - Dr. Sarah's Research Agent
+  - 현우's Code Agent
+  - 수진's Marketing Agent
+  - 지민's Design Agent
+- PM 데모 5막 흐름 구현
+  - 리서치 검색 → invoke → DM
+  - 코드 검색 → invoke → DM
+  - 최종 팀 구성 요약 패널
 
-## 프로젝트 구조
+### 완료된 평가
 
-```
-Linkedin_Agentic_AI/
-├── backend/
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   ├── models.py          # Agent(확장) + Thread + Message + InvokeLog(신규)
-│   │   ├── schemas.py
-│   │   ├── routers/
-│   │   │   ├── agents.py
-│   │   │   └── threads.py
-│   │   └── services/
-│   │       ├── outreach.py    # LinkedIn DM 포워딩
-│   │       ├── invoke.py      # 신규 — invoke_agent 로직 + InvokeLog 기록
-│   │       └── scoring.py     # 신규 — 가중치 스코어링 순수 함수
-│   ├── mcp_server.py          # FastMCP 6개 tools
-│   ├── seed.py
-│   ├── alembic/
-│   ├── alembic.ini
-│   └── requirements.txt
-├── agents/
-│   ├── common.py
-│   ├── agent_researcher.py    # :8001 — /incoming + /invoke
-│   ├── agent_coder.py         # :8002 — 동일
-│   └── agent_pm.py            # 5막 데모 오케스트레이터 + Rich UI
-├── docs/
-│   ├── PRD.md
-│   └── TSD.md
-├── plans/
-│   ├── plan_A.md
-│   ├── plan_B.md
-│   └── final_plan.md          # 이 파일
-└── Product.md
-```
+- `docs/EVAL_PHASE1.md` 기준 v2 평가 반영
+- 자동화 검증 통과
+  - `ruff check`
+  - `mypy`
+  - `pytest`
+- 테스트 수 확장
+  - v1: 7개
+  - v2: 11개
 
 ---
 
-## 데이터 모델
+## 2. Phase 상태판
 
-### Agent
-
-```python
-class Agent(Base):
-    # 기본
-    id              = Column(UUID, primary_key=True)
-    name            = Column(String, nullable=False)
-    description     = Column(Text)
-    skill_tags      = Column(JSON)            # ["research", "python"]
-    endpoint_url    = Column(String)
-    career_projects = Column(Text)            # markdown
-    owner_name      = Column(String)
-    owner_email     = Column(String)
-    api_key         = Column(String, unique=True)
-    created_at      = Column(DateTime)
-
-    # Plan B에서 추가
-    version         = Column(String, default="1.0.0")
-    input_schema    = Column(JSON, nullable=True)
-    output_schema   = Column(JSON, nullable=True)
-    verified        = Column(Boolean, default=False)
-    star_rating     = Column(Float, default=0.0)
-    success_rate    = Column(Float, default=1.0)
-    avg_response_ms = Column(Integer, default=1000)
-    total_calls     = Column(Integer, default=0)
-
-    # trust_score — DB 컬럼 아닌 @property (Phase 2 교체 시 마이그레이션 불필요)
-    @property
-    def trust_score(self):
-        speed = 1 - min(self.avg_response_ms / 5000, 1.0)
-        return (0.4 * self.star_rating / 5 + 0.3 * self.success_rate
-                + 0.2 * speed + 0.1 * int(self.verified))
-```
-
-### Thread / Message (Plan A 그대로)
-
-```python
-class Thread(Base):
-    id, initiator_id(FK→Agent), target_id(FK→Agent), subject, created_at
-
-class Message(Base):
-    id, thread_id(FK→Thread), sender_id(FK→Agent), content, created_at
-```
-
-### InvokeLog (신규)
-
-```python
-class InvokeLog(Base):
-    id           = Column(UUID, primary_key=True)
-    caller_id    = Column(UUID, ForeignKey("agents.id"))
-    target_id    = Column(UUID, ForeignKey("agents.id"))
-    input_data   = Column(JSON)
-    output_data  = Column(JSON)
-    status       = Column(String)   # "success" | "error" | "timeout"
-    response_ms  = Column(Integer)
-    created_at   = Column(DateTime)
-```
-
----
-
-## REST API
-
-| Method | Path | 용도 |
-|---|---|---|
-| POST | `/api/agents` | agent 등록 → api_key 반환 |
-| GET | `/api/agents` | 목록 |
-| GET | `/api/agents/{id}` | 프로필 조회 (trust 필드 포함) |
-| GET | `/api/agents/search?q=&tags=&weights=` | 가중치 검색 |
-| GET | `/api/agents/{id}/threads` | 스레드 목록 |
-| GET | `/api/threads/{id}` | 스레드 + 모든 메시지 |
-
----
-
-## MCP 서버 Tools (6개)
-
-| Tool | 설명 |
-|---|---|
-| `search_agents(query, tags, weights, limit)` | 가중치 스코어링 적용, `final_score` 포함 반환 |
-| `get_agent_profile(agent_id)` | trust 필드 포함 상세 프로필 |
-| `send_outreach(caller_api_key, target_id, message)` | LinkedIn DM — Thread/Message DB 저장 + B endpoint POST |
-| `invoke_agent(caller_api_key, target_id, input_data, timeout_ms)` | 작업 위임 — JSON 응답, InvokeLog 저장 |
-| `get_my_threads(caller_api_key)` | 내 스레드 목록 |
-| `submit_review(caller_api_key, target_id, rating, comment)` | 별점 리뷰 (호출 이력 있는 경우만) |
-
-### scoring.py
-
-```python
-def compute_scores(agents, query_tags, weights):
-    results = []
-    for a in agents:
-        specialization = len(set(a.skill_tags) & set(query_tags)) / max(len(query_tags), 1)
-        speed = 1 - min(a.avg_response_ms / 5000, 1.0)
-        trust = (
-            weights.get("star_rating", 0.4) * (a.star_rating / 5)
-            + weights.get("success_rate", 0.3) * a.success_rate
-            + weights.get("response_speed", 0.2) * speed
-            + weights.get("specialization", 0.1) * specialization
-        )
-        results.append(ScoredAgent(agent=a, trust_score=trust, specialization=specialization))
-    return sorted(results, key=lambda x: x.trust_score, reverse=True)
-```
-
----
-
-## 데모 시나리오 — 5막 (agent_pm.py)
-
-| 막 | 행동 | Rich 출력 |
-|---|---|---|
-| 1막 | PM Youngsu 시작 | Banner: "AI 스타트업 리서치팀 구성 미션" |
-| 2막 | `search_agents(weights={"star_rating":0.5,...})` | **Table: 후보별 Rating/Speed/Spec/Score 비교** ← 클라이맥스 #1 |
-| 3막 | `invoke_agent(Research Youngsu, {query:"..."})` | Spinner → JSON 응답 Panel |
-| 4막 | `send_outreach(Research Youngsu, "팀 합류 제안")` | DM 대화 Panel |
-| 5막 | Code Review 동일 반복 → 팀 완성 요약 | "사람의 개입: 0회" ← 클라이맥스 #2 |
-
----
-
-## 마일스톤
-
-| # | 범위 | 핵심 산출물 | 검증 |
+| Phase | 이름 | 상태 | 설명 |
 |---|---|---|---|
-| M1 | FastAPI + 확장 모델 + Alembic | `models.py`, `schemas.py`, `/api/agents` CRUD | curl로 trust 필드 포함 등록/조회 |
-| M2 | 검색 REST + seed.py + scoring.py | `scoring.py` 순수 함수, `?weights=` 파라미터 | weights 전달 시 스코어 정렬 |
-| M3 | MCP 6 tools + outreach + invoke | `mcp_server.py`, `invoke.py`, `InvokeLog` | MCP Inspector로 invoke 실행, DB 확인 |
-| M4 | Research + CodeReview seed agents | `/incoming` + `/invoke` 양쪽 핸들러 | invoke→JSON + outreach→DM 모두 확인 |
-| M5 | PM Youngsu 5막 + Rich 가중치 테이블 | `agent_pm.py` 완성 | `python agents/agent_pm.py` 전 과정 |
-| M6 | E2E 리허설 + 화면 녹화 | 녹화 파일 | 전체 스택 가동 후 데모 완성 |
+| Phase 0 | 문서/하네스/기본 계획 | 완료 | PRD/TSD/TEST_CASE/CLAUDE 정리 및 초기 계획 수립 |
+| Phase 1 | PoC 구현 | 완료 | 백엔드, MCP, seed agents, PM demo 기본 흐름 구현 |
+| Phase 1-Eval | 평가 및 1차 리팩토링 | 완료 | `docs/EVAL_PHASE1.md`의 주요 Major 항목 반영 |
+| Phase 1.5 | 잔여 재작업 | 진행 필요 | 테스트 보강, seed/TSD 정합성, startup 패턴 정리 |
+| Phase 2 | 신뢰/선택 고도화 | 예정 | 동적 평판, Publisher 1급 엔티티, 운영 고도화 |
+| Phase 3 | 생태계 확장 | 예정 | Git 연동, YouTube/GitHub layer, Web UI 확장 |
 
 ---
 
-## 실행 방법 (M6 기준)
+## 3. Phase 1 / Phase 1-Eval 완료 기록
 
-```bash
-# 터미널 1: 백엔드
-uvicorn backend.app.main:app --port 8000
+### Phase 1 완료 항목
 
-# 터미널 2: MCP 서버
-python backend/mcp_server.py
+- UUID 기반 무인증 계약으로 구현 완료
+- `api_key`, `caller_api_key`, `owner_email` 기반 레거시 설계 제거
+- `trust_score`를 계산 프로퍼티로 구현 완료
+- `invoke`/`outreach` 흐름에서 DB 기록까지 포함한 PoC 완성
+- `agents/common.py` 재사용 및 각 worker fallback 적용
 
-# 터미널 3: Research Youngsu
-uvicorn agents.agent_researcher:app --port 8001
+### Phase 1-Eval 완료 항목
 
-# 터미널 4: Code Review Youngsu
-uvicorn agents.agent_coder:app --port 8002
+`docs/EVAL_PHASE1.md` 기준 아래 항목은 반영 완료:
 
-# seed 등록
-python backend/seed.py
+- M-01: 팀 완성 요약 패널 구현
+- M-02: Act 5 Code Agent 검색 단계 추가
+- M-03: pacing 및 spinner 추가
+- M-04: DM 대화 패널 구현
+- M-05: marketer/designer invoke에 LLM 호출 + fallback 추가
+- m-02: 검색 테이블에 `publisher_title` 표시
+- m-05: Act 제목 구체화
 
-# 데모
-python agents/agent_pm.py
-```
+### 자동화 검증 기준
 
----
-
-## Plan B 풀 비전 확장 경로
-
-| PoC | Phase 2 업그레이드 |
-|---|---|
-| `star_rating` 고정값 | `submit_review` 누적 집계 |
-| `success_rate` 고정값 | `InvokeLog` 실시간 집계 |
-| `avg_response_ms` 고정값 | `InvokeLog.response_ms` 이동평균 |
-| SQLite | Alembic 스크립트로 PostgreSQL 전환 |
-| SQL 태그 교집합 | pgvector 시맨틱 검색 |
-| `verified` 수동 | Celery 자동 벤치마크 |
-| `InvokeLog` | 크레딧 차감 트리거 포인트 |
-| `version` 필드 | Git 태그 연동 웹훅 |
+- `uv run ruff check .` 통과
+- `uv run mypy backend/ agents/` 통과
+- `uv run pytest` 통과
 
 ---
 
-## 리스크
+## 4. Codex 재작업 필요 항목 — Phase 1.5
 
-| # | 리스크 | 대응 |
-|---|---|---|
-| 1 | MCP transport 불안정 | SSE :8100 별도 프로세스, FastMCP `transport="sse"` |
-| 2 | Claude API 비용 | Sonnet, 총 $5-10 예산 |
-| 3 | SQLite 동시 쓰기 | WAL + `check_same_thread=False` |
-| 4 | Seed agent 다운 | 각 agent에 canned fallback 응답 |
-| 5 | Rich 테이블 레이아웃 | 80/120컬럼 사전 테스트, `min_width`/`max_width` 명시 |
+> 이 섹션은 `docs/EVAL_PHASE1.md`의 잔여 항목과 현재 코드 상태를 기준으로 Codex가 다음으로 처리해야 하는 작업이다.
+
+### Phase 1.5-A — 테스트 보강
+
+상태: 진행 필요
+
+목표:
+- `docs/TEST_CASE.md`와 실제 테스트의 간극을 줄인다.
+- 데모 크리티컬 패스 외의 실패 케이스를 고정한다.
+
+반드시 추가할 항목:
+- TC-01-02: 필수 필드 누락 등록 실패
+- TC-03-03: 다중 태그 검색
+- TC-04-03: invoke 대상 없음
+- TC-04-04: invoke endpoint 없음
+- TC-05-03: outreach 대상 없음
+- TC-05-04: outreach endpoint 없음
+
+권장 추가 항목:
+- TC-03-02: 커스텀 가중치 검색
+- TC-03-06: search `limit`
+- TC-09-02: MCP search tool smoke test
+- TC-09-03: MCP profile tool smoke test
+
+완료 기준:
+- 테스트 수가 최소 16개 이상으로 증가
+- 새 테스트가 문서 케이스 번호와 매핑됨
+
+### Phase 1.5-B — seed / 명세 정합성
+
+상태: 부분 완료, 재검증 필요
+
+목표:
+- seed 데이터가 TSD와 1:1로 맞도록 정리한다.
+
+작업:
+- Marketing/Design `input_schema`, `output_schema`가 TSD와 정확히 일치하는지 재확인
+- 필요하면 `docs/TSD.md`의 seed 예시와 현재 구현 간 차이 보정
+- `docs/TEST_CASE.md`의 이름/수치/기대 응답을 현재 seed 기준으로 추가 정리
+
+완료 기준:
+- `backend/seed.py`, `docs/TSD.md`, `docs/TEST_CASE.md` 사이 불일치 없음
+
+### Phase 1.5-C — FastAPI startup 패턴 정리
+
+상태: 진행 필요
+
+목표:
+- worker agent들의 deprecated startup 훅을 최신 패턴으로 전환한다.
+
+작업:
+- `@app.on_event("startup")` 제거
+- `lifespan` 컨텍스트 매니저로 `print_backend_info()` 연결
+- Research / Code / Marketing / Design 4개 agent 파일에 동일 패턴 적용
+
+완료 기준:
+- worker agent 파일에 deprecated startup 패턴 없음
+
+### Phase 1.5-D — Research Agent 응답 품질 개선
+
+상태: 진행 필요
+
+목표:
+- `agent_researcher.py`에서 summary만 LLM 사용하고 findings는 고정 문자열인 상태를 개선한다.
+
+작업:
+- LLM 성공 시 `summary`와 `key_findings`를 함께 생성하도록 구조 조정
+- 실패 시에만 canned fallback findings 사용
+- 파싱이 과도하면 단순한 구분자 기반 처리로 시작
+
+완료 기준:
+- LLM 성공 경로에서 hardcoded findings만 반환하지 않음
+
+---
+
+## 5. 이후 개발 단계
+
+### Phase 2 — 신뢰/선택 고도화
+
+상태: 예정
+
+목표:
+- 정적 지표 기반 PoC를 실제 운영형 신뢰 시스템으로 발전시킨다.
+
+핵심 작업:
+- `Publisher` 테이블 분리
+- Publisher 검증 상태 워크플로우 추가
+- `InvokeLog` 집계를 이용한 `success_rate`, `avg_response_ms`, `trust_score` 동적화
+- `Review`를 별도 엔티티로 승격할지 결정
+- `search_agents` 스코어링 규칙 문서화
+
+완료 기준:
+- 고정 seed 수치 없이 로그/리뷰 기반 지표 갱신 가능
+
+### Phase 2.1 — 운영/가시성
+
+상태: 예정
+
+목표:
+- 데모용 앱에서 운영 가능한 서비스로 진화시키기 위한 최소 운영 기반을 마련한다.
+
+핵심 작업:
+- 에러율/타임아웃 기반 상태 플래그
+- 간단한 관리자 조회 API 또는 내부 대시보드용 endpoint
+- 로깅/관측 포맷 정리
+
+### Phase 3 — 생태계 확장
+
+상태: 예정
+
+목표:
+- LinkedIn layer PoC를 넘어 전체 제품 비전으로 확장한다.
+
+핵심 작업:
+- GitHub 연동 및 버전 감지
+- Web UI 추가
+- YouTube layer / GitHub layer 설계 착수
+- 벡터 검색 또는 의미 기반 검색 도입 검토
+
+---
+
+## 6. 작업 순서 제안
+
+Codex의 다음 실행 순서는 아래를 권장한다.
+
+1. Phase 1.5-A 테스트 보강
+2. Phase 1.5-C startup 패턴 정리
+3. Phase 1.5-D Research Agent 응답 품질 개선
+4. Phase 1.5-B 문서/seed 정합성 최종 보정
+5. Phase 2 설계 착수
+
+---
+
+## 7. 관리 규칙
+
+- 완료된 항목은 이 문서에서 `완료`로 유지하고 삭제하지 않는다.
+- 평가 문서에서 새 이슈가 나오면 해당 이슈를 가장 가까운 Phase 섹션에 편입한다.
+- 새 구현 라운드가 끝날 때마다 아래를 갱신한다.
+  - 자동화 검증 결과
+  - 테스트 수
+  - 완료된 Phase 상태
+  - 다음 Codex 작업 단계

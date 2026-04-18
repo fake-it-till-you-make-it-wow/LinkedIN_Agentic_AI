@@ -1,0 +1,177 @@
+[project]
+name = "agentlinkedin"
+version = "0.1.0"
+description = "AI 에이전트가 에이전트를 검색하고, 평가하고, 고용하는 플랫폼"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pydantic-settings>=2.0",
+    "httpx>=0.27",
+    "mcp>=1.0",
+    "rich>=13.0",
+    "anthropic>=0.40",
+    "groq>=0.11",
+    "google-generativeai>=0.8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.11",
+    "mypy>=1.14",
+    "pre-commit>=4.0",
+]
+
+# =============================================================================
+# Ruff — 가장 엄격한 linter + formatter 설정
+# =============================================================================
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+exclude = [
+    "pytest-cache-files-*",
+    "tests/.tmp_pytest",
+    "tests/test_temp",
+]
+
+[tool.ruff.lint]
+# 기본 규칙(F, E, W) + 엄격한 추가 규칙 전부 활성화
+select = [
+    "F",      # Pyflakes — 미사용 import, 변수 등
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "I",      # isort — import 정렬
+    "N",      # pep8-naming — 네이밍 컨벤션
+    "UP",     # pyupgrade — 최신 Python 문법 강제
+    "ANN",    # flake8-annotations — 타입 힌트 강제
+    "ASYNC",  # flake8-async — async 패턴
+    "S",      # flake8-bandit — 보안 취약점
+    "B",      # flake8-bugbear — 버그 유발 패턴
+    "A",      # flake8-builtins — 빌트인 섀도잉 방지
+    "C4",     # flake8-comprehensions — 컴프리헨션 최적화
+    "DTZ",    # flake8-datetimez — naive datetime 방지
+    "T10",    # flake8-debugger — debugger 호출 방지
+    "FA",     # flake8-future-annotations — future annotations
+    "ISC",    # flake8-implicit-str-concat — 문자열 연결
+    "ICN",    # flake8-import-conventions — import 컨벤션
+    "LOG",    # flake8-logging — 로깅 패턴
+    "G",      # flake8-logging-format — 로깅 포맷
+    "PIE",    # flake8-pie — 불필요한 패턴
+    "T20",    # flake8-print — print() 사용 금지
+    "PT",     # flake8-pytest-style — pytest 스타일
+    "Q",      # flake8-quotes — 따옴표 일관성
+    "RSE",    # flake8-raise — raise 패턴
+    "RET",    # flake8-return — return 패턴
+    "SLF",    # flake8-self — private 접근 방지
+    "SLOT",   # flake8-slots — __slots__ 패턴
+    "SIM",    # flake8-simplify — 코드 단순화
+    "TID",    # flake8-tidy-imports — import 정리
+    "TCH",    # flake8-type-checking — TYPE_CHECKING 블록
+    "ARG",    # flake8-unused-arguments — 미사용 인자
+    "PTH",    # flake8-use-pathlib — pathlib 강제
+    "FIX",    # flake8-fixme — FIXME/TODO 감지
+    "ERA",    # eradicate — 주석 처리된 코드 감지
+    "PL",     # Pylint — 종합 린트 (PLC, PLE, PLR, PLW)
+    "TRY",    # tryceratops — try/except 패턴
+    "FLY",    # flynt — f-string 강제
+    "PERF",   # Perflint — 성능 안티패턴
+    "FURB",   # refurb — 모던 Python 패턴
+    "RUF",    # Ruff 자체 규칙
+]
+
+ignore = [
+    # PoC 단계에서 불필요하게 엄격한 규칙 완화
+    "ANN001",  # deprecated ANN rule
+    "ANN002",  # deprecated ANN rule
+    "ANN401",  # Any 타입 허용 (PoC)
+    "ASYNC109",# 테스트 더블의 timeout 파라미터 허용
+    "B008",    # FastAPI Depends 패턴 허용
+    "E501",    # 긴 프롬프트/문서 문자열 허용
+    "S101",    # assert 사용 허용 (테스트)
+    "T20",     # print() 허용 (터미널 UI / seed 스크립트)
+    "FIX002",  # TODO 허용 (PoC)
+    "ERA001",  # 주석 처리된 코드 허용 (개발 중)
+    "TRY003",  # 긴 예외 메시지 허용
+    "PLR0913", # 함수 인자 수 제한 완화
+    "PLW0603", # DB 초기화용 module global 허용
+    "PT001",   # fixture decorator parentheses 허용
+    "PT023",   # mark decorator parentheses 허용
+    "TC001",   # type-checking import 이동 강제 완화
+    "TC002",   # type-checking import 이동 강제 완화
+    "TC003",   # type-checking import 이동 강제 완화
+    "PLC0415", # 테스트/환경 설정용 지연 import 허용
+    "ISC001",  # ruff formatter와 충돌 방지
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "ANN", "ARG", "PLR2004"]
+"agents/**/*.py" = ["T20"]    # agents는 print 허용
+"backend/seed.py" = ["T20"]   # seed 스크립트는 print 허용
+# common.py는 수정 금지 파일 — 기존 패턴(지연 import, global, 긴 줄 등) 허용
+"agents/common.py" = ["PLC0415", "B904", "E501", "PLW0603", "ASYNC109", "ANN", "T20", "I001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["backend", "agents"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+exclude = ["agents/common.py"]  # 수정 금지 파일
+
+# =============================================================================
+# MyPy — 엄격한 타입 체크
+# =============================================================================
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+warn_unreachable = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = [
+    "mcp.*",
+    "groq.*",
+    "google.generativeai.*",
+    "anthropic.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "alembic",
+    "alembic.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "agents.common",
+]
+ignore_errors = true
+
+# =============================================================================
+# Pytest
+# =============================================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short --basetemp=tests/test_temp"
