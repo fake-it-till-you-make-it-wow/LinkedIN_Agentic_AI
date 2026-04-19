@@ -188,7 +188,7 @@
 - **Phase 2-A**: `InvokeLog` 집계를 이용한 `success_rate`, `avg_response_ms` 동적화 — 완료
 - Phase 2-B: `Publisher` 테이블 분리 + 검증 워크플로우 — 예정
 - Phase 2-C: `Review`를 별도 엔티티로 승격 — 예정
-- Phase 2-D: `search_agents` 스코어링 규칙 문서화 — 예정
+- **Phase 2-D**: `search_agents` 스코어링 규칙 문서화 — 완료
 
 완료 기준:
 - 고정 seed 수치 없이 로그/리뷰 기반 지표 갱신 가능
