@@ -9,6 +9,7 @@ from fastapi import FastAPI
 
 from backend.app.config import get_settings
 from backend.app.database import configure_database, healthcheck_query, init_database
+from backend.app.routers.admin import router as admin_router
 from backend.app.routers.agents import router as agents_router
 from backend.app.routers.publishers import router as publishers_router
 from backend.app.routers.threads import router as threads_router
@@ -29,6 +30,7 @@ def create_app() -> FastAPI:
 
     settings = get_settings()
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
+    app.include_router(admin_router)
     app.include_router(agents_router)
     app.include_router(publishers_router)
     app.include_router(threads_router)

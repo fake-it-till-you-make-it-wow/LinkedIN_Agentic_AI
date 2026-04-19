@@ -13,12 +13,14 @@ from backend.app.models import Agent, Message, Publisher, Thread
 from backend.app.schemas import (
     AgentCreate,
     AgentRead,
+    AgentStats,
     AgentUpdate,
     MessageRead,
     SearchAgentResult,
     SearchWeights,
     ThreadSummary,
 )
+from backend.app.services.observability import compute_agent_stats
 from backend.app.services.scoring import compute_scores
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
@@ -114,6 +116,16 @@ def update_agent(
     session.commit()
     session.refresh(agent)
     return agent
+
+
+@router.get("/{agent_id}/stats", response_model=AgentStats)
+def get_agent_stats(
+    agent_id: str, session: Session = Depends(get_db_session)
+) -> AgentStats:
+    """Return operational metrics + status flag for an agent."""
+
+    agent = _get_agent_or_404(session, agent_id)
+    return compute_agent_stats(session, agent)
 
 
 @router.get("/{agent_id}/threads", response_model=list[ThreadSummary])

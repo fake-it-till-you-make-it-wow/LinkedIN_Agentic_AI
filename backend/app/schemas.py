@@ -155,6 +155,35 @@ class ReviewResult(BaseModel):
     error: str | None = None
 
 
+class AgentStats(BaseModel):
+    """Per-agent operational metrics derived from InvokeLog + Review."""
+
+    agent_id: str
+    total_invocations: int
+    success_count: int
+    error_count: int
+    timeout_count: int
+    success_rate: float
+    avg_response_ms: int | None
+    review_count: int
+    star_rating: float
+    last_invoked_at: datetime | None
+    status: str
+
+
+class AdminHealth(BaseModel):
+    """Aggregate system health for operators."""
+
+    agents_total: int
+    agents_verified: int
+    publishers_total: int
+    publishers_verified: int
+    invocations_total: int
+    invocation_error_rate: float
+    reviews_total: int
+    status: str
+
+
 class SearchWeights(BaseModel):
     """Search scoring weights."""
 
