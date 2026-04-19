@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from agents.common import post_json
 from backend.app.models import Agent, InvokeLog
 from backend.app.schemas import InvokeResult
+from backend.app.services.demo_events import DemoEventEmitter
+from backend.app.services.workers import resolve_worker
 
 
 class InvokeServiceError(Exception):
@@ -46,8 +48,15 @@ async def invoke_agent(
     target_agent_id: str,
     input_data: dict[str, Any],
     timeout_ms: int = 30000,
+    emitter: DemoEventEmitter | None = None,
 ) -> InvokeResult:
-    """Invoke a worker agent and persist an invoke log."""
+    """Invoke a worker agent and persist an invoke log.
+
+    `emitter`가 주어지면 Phase 3-E 데모용 라이브 이벤트를 방출한다
+    (`invoke_sent`, `invoke_completed`). 워커의 endpoint_url이 인라인
+    레지스트리와 매칭되면 HTTP 호출 대신 같은 프로세스 안의 순수 함수를
+    직접 호출한다. 매칭되지 않으면 기존처럼 `post_json`으로 떨어진다.
+    """
 
     caller = session.get(Agent, caller_agent_id)
     target = session.get(Agent, target_agent_id)
@@ -56,17 +65,34 @@ async def invoke_agent(
     if not target.endpoint_url:
         raise InvokeServiceError("대상 에이전트에 엔드포인트가 없습니다")
 
+    worker = resolve_worker(target.endpoint_url)
+    transport = "inline" if worker is not None else "http"
+
+    if emitter is not None:
+        await emitter.emit(
+            "invoke_sent",
+            {
+                "from": {"id": caller.id, "name": caller.name},
+                "to": {"id": target.id, "name": target.name},
+                "input": input_data,
+                "transport": transport,
+            },
+        )
+
     started = perf_counter()
     status = "success"
     output: dict[str, Any] | None = None
     response_ms = 0
 
     try:
-        output = await post_json(
-            f"{target.endpoint_url.rstrip('/')}/invoke",
-            input_data,
-            timeout=timeout_ms / 1000,
-        )
+        if worker is not None:
+            output = await worker.invoke(input_data)
+        else:
+            output = await post_json(
+                f"{target.endpoint_url.rstrip('/')}/invoke",
+                input_data,
+                timeout=timeout_ms / 1000,
+            )
         response_ms = int((perf_counter() - started) * 1000)
         target.total_calls += 1
     except httpx.TimeoutException:
@@ -89,6 +115,17 @@ async def invoke_agent(
     _recompute_target_metrics(session, target)
     session.commit()
     session.refresh(log)
+
+    if emitter is not None:
+        await emitter.emit(
+            "invoke_completed",
+            {
+                "agent": {"id": target.id, "name": target.name},
+                "status": status,
+                "output": output,
+                "response_ms": response_ms,
+            },
+        )
 
     return InvokeResult(
         invoke_log_id=log.id,

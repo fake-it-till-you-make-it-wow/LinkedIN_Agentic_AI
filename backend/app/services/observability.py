@@ -46,9 +46,12 @@ def compute_agent_stats(session: Session, agent: Agent) -> AgentStats:
         )
     )
 
-    review_count = session.scalar(
-        select(func.count(Review.id)).where(Review.target_id == agent.id)
-    ) or 0
+    review_count = (
+        session.scalar(
+            select(func.count(Review.id)).where(Review.target_id == agent.id)
+        )
+        or 0
+    )
 
     success_rate = success_count / total if total else 0.0
     error_rate = (error_count + timeout_count) / total if total else 0.0
@@ -88,15 +91,11 @@ def compute_admin_health(session: Session) -> AdminHealth:
     invocations_total, failures = session.execute(
         select(
             func.count(InvokeLog.id),
-            func.sum(
-                case((InvokeLog.status.in_(("error", "timeout")), 1), else_=0)
-            ),
+            func.sum(case((InvokeLog.status.in_(("error", "timeout")), 1), else_=0)),
         )
     ).one()
     invocations_total = int(invocations_total or 0)
-    error_rate = (
-        (int(failures or 0) / invocations_total) if invocations_total else 0.0
-    )
+    error_rate = (int(failures or 0) / invocations_total) if invocations_total else 0.0
 
     if invocations_total == 0:
         status = "idle"

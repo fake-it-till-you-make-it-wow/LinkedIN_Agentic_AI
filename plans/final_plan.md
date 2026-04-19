@@ -54,14 +54,14 @@
   - Phase 1.5: 24개
   - Phase 2-A 이후: 27개 → 29개 → 30개 → 33개 (Phase 2.1 시점)
 
-### 현재 위치 (기준일: 2026-04-19)
+### 현재 위치 (기준일: 2026-04-20)
 
-- **진행 중 Phase**: Phase 3 (모든 서브페이즈 완료)
-- **가장 최근 완료**: Phase 3-C (Web UI — Next.js 15 App Router) — PR #10 open
+- **진행 중 Phase**: Phase 3 (3-E 완료)
+- **가장 최근 완료**: Phase 3-E (Live Demo MVP — 브라우저 SSE 5막 데모)
 - **다음 예정**: Phase 4 (운영화/확장 — YouTube layer, 인증, Postgres, 배포)
-- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D, 3-A, 3-B, 3-C
-- **테스트 수**: 41 passing (`uv run pytest` 기준, Phase 3-C는 frontend-only이므로 백엔드 테스트 불변)
-- **PR 체인 (stacked)**: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10(phase-3c-web-ui)
+- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D, 3-A, 3-B, 3-C, 3-E
+- **테스트 수**: 41 passing (`uv run pytest` 기준, Phase 3-E는 신규 SSE 라우터 + 인라인 워커 추출 — 기존 invoke/outreach 시그니처 호환 유지로 회귀 없음)
+- **PR 체인 (stacked)**: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10(phase-3c-web-ui) → #11(phase-3e-live-demo)
   - 모두 open 상태 (main 머지는 전체 검토 후 일괄 처리 예정)
 - **남은 경로 요약**: Phase 4 착수 필요 — YouTube layer 구현, 인증·권한, SQLite→Postgres, 배포 파이프라인, 퍼블리셔 self-serve
 
@@ -69,16 +69,17 @@
 
 ## 2. Phase 상태판
 
-| Phase | 이름 | 상태 | 설명 |
-|---|---|---|---|
-| Phase 0 | 문서/하네스/기본 계획 | 완료 | PRD/TSD/TEST_CASE/CLAUDE 정리 및 초기 계획 수립 |
-| Phase 1 | PoC 구현 | 완료 | 백엔드, MCP, seed agents, PM demo 기본 흐름 구현 |
-| Phase 1-Eval | 평가 및 1차 리팩토링 | 완료 | `docs/EVAL_PHASE1.md`의 주요 Major 항목 반영 |
-| Phase 1.5 | 잔여 재작업 | 완료 | 테스트 보강, seed/TSD 정합성 재검증, startup 패턴 정리, Research findings 파싱 |
-| Phase 2 | 신뢰/선택 고도화 | 완료 | 동적 평판, Publisher 1급 엔티티, Review 승격 |
-| Phase 2.1 | 운영/가시성 | 완료 | agent stats + admin health 엔드포인트 |
-| Phase 3 | 생태계 확장 | 진행 중 | 3-D 완료, 3-A/3-B/3-C 예정 |
-| Phase 4 | 운영화/확장 (후보) | 예정 | YouTube layer 구현, 인증, Postgres, 배포, 퍼블리셔 self-serve |
+| Phase        | 이름                  | 상태    | 설명                                                                           |
+| ------------ | --------------------- | ------- | ------------------------------------------------------------------------------ |
+| Phase 0      | 문서/하네스/기본 계획 | 완료    | PRD/TSD/TEST_CASE/CLAUDE 정리 및 초기 계획 수립                                |
+| Phase 1      | PoC 구현              | 완료    | 백엔드, MCP, seed agents, PM demo 기본 흐름 구현                               |
+| Phase 1-Eval | 평가 및 1차 리팩토링  | 완료    | `docs/EVAL_PHASE1.md`의 주요 Major 항목 반영                                   |
+| Phase 1.5    | 잔여 재작업           | 완료    | 테스트 보강, seed/TSD 정합성 재검증, startup 패턴 정리, Research findings 파싱 |
+| Phase 2      | 신뢰/선택 고도화      | 완료    | 동적 평판, Publisher 1급 엔티티, Review 승격                                   |
+| Phase 2.1    | 운영/가시성           | 완료    | agent stats + admin health 엔드포인트                                          |
+| Phase 3      | 생태계 확장           | 진행 중 | 3-A/B/C/D/E 완료 (YouTube layer는 Phase 4로 이전)                              |
+| Phase 3-E    | Live Demo MVP         | 완료    | 브라우저에서 5막 PM 데모 실시간 관전 (SSE + 인라인 워커)                       |
+| Phase 4      | 운영화/확장 (후보)    | 예정    | YouTube layer 구현, 인증, Postgres, 배포, 퍼블리셔 self-serve                  |
 
 ---
 
@@ -121,10 +122,12 @@
 상태: 완료 (총 24개 테스트)
 
 목표:
+
 - `docs/TEST_CASE.md`와 실제 테스트의 간극을 줄인다.
 - 데모 크리티컬 패스 외의 실패 케이스를 고정한다.
 
 반드시 추가할 항목:
+
 - TC-01-02: 필수 필드 누락 등록 실패
 - TC-03-03: 다중 태그 검색
 - TC-04-03: invoke 대상 없음
@@ -133,12 +136,14 @@
 - TC-05-04: outreach endpoint 없음
 
 권장 추가 항목:
+
 - TC-03-02: 커스텀 가중치 검색
 - TC-03-06: search `limit`
 - TC-09-02: MCP search tool smoke test
 - TC-09-03: MCP profile tool smoke test
 
 완료 기준:
+
 - 테스트 수가 최소 16개 이상으로 증가
 - 새 테스트가 문서 케이스 번호와 매핑됨
 
@@ -147,14 +152,17 @@
 상태: 완료 (재검증 결과 seed ↔ TSD Marketing/Design input/output_schema 모두 일치)
 
 목표:
+
 - seed 데이터가 TSD와 1:1로 맞도록 정리한다.
 
 작업:
+
 - Marketing/Design `input_schema`, `output_schema`가 TSD와 정확히 일치하는지 재확인
 - 필요하면 `docs/TSD.md`의 seed 예시와 현재 구현 간 차이 보정
 - `docs/TEST_CASE.md`의 이름/수치/기대 응답을 현재 seed 기준으로 추가 정리
 
 완료 기준:
+
 - `backend/seed.py`, `docs/TSD.md`, `docs/TEST_CASE.md` 사이 불일치 없음
 
 ### Phase 1.5-C — FastAPI startup 패턴 정리
@@ -162,14 +170,17 @@
 상태: 완료 (researcher/coder/marketer/designer 4개 파일 lifespan 전환)
 
 목표:
+
 - worker agent들의 deprecated startup 훅을 최신 패턴으로 전환한다.
 
 작업:
+
 - `@app.on_event("startup")` 제거
 - `lifespan` 컨텍스트 매니저로 `print_backend_info()` 연결
 - Research / Code / Marketing / Design 4개 agent 파일에 동일 패턴 적용
 
 완료 기준:
+
 - worker agent 파일에 deprecated startup 패턴 없음
 
 ### Phase 1.5-D — Research Agent 응답 품질 개선
@@ -177,14 +188,17 @@
 상태: 완료 (SUMMARY/bullet 파싱 기반 summary + key_findings 동시 생성)
 
 목표:
+
 - `agent_researcher.py`에서 summary만 LLM 사용하고 findings는 고정 문자열인 상태를 개선한다.
 
 작업:
+
 - LLM 성공 시 `summary`와 `key_findings`를 함께 생성하도록 구조 조정
 - 실패 시에만 canned fallback findings 사용
 - 파싱이 과도하면 단순한 구분자 기반 처리로 시작
 
 완료 기준:
+
 - LLM 성공 경로에서 hardcoded findings만 반환하지 않음
 
 ---
@@ -196,15 +210,18 @@
 상태: 완료 (서브페이즈 2-A/B/C/D 모두 종료)
 
 목표:
+
 - 정적 지표 기반 PoC를 실제 운영형 신뢰 시스템으로 발전시킨다.
 
 서브페이즈:
+
 - **Phase 2-A**: `InvokeLog` 집계를 이용한 `success_rate`, `avg_response_ms` 동적화 — 완료
 - **Phase 2-B**: `Publisher` 테이블 분리 + 검증 워크플로우 — 완료
 - **Phase 2-C**: `Review`를 별도 엔티티로 승격 — 완료
 - **Phase 2-D**: `search_agents` 스코어링 규칙 문서화 — 완료
 
 완료 기준:
+
 - 고정 seed 수치 없이 로그/리뷰 기반 지표 갱신 가능
 
 #### Phase 2-A 완료 기록
@@ -236,6 +253,7 @@
 상태: 완료
 
 완료 기록:
+
 - `backend/app/services/observability.py` 신설 — Agent/Publisher/InvokeLog/Review 집계.
 - `GET /api/agents/{id}/stats`: 호출 건수/성공·실패·타임아웃 분해, 성공 호출 평균 응답시간, 리뷰 수, `last_invoked_at`, `status` 플래그(idle/healthy/degraded/failing) 제공.
 - `GET /api/admin/health`: 에이전트/퍼블리셔 총계·검증수, invoke 총계·에러율, 리뷰 총계, 시스템 `status` 제공.
@@ -248,9 +266,11 @@
 상태: 진행 중 (서브페이즈로 분할 실행)
 
 목표:
+
 - LinkedIn layer PoC를 넘어 전체 제품 비전(멀티 레이어 생태계)으로 확장한다.
 
 서브페이즈:
+
 - **Phase 3-D**: 멀티 레이어(LinkedIn/GitHub/YouTube) 설계 문서화 — 완료
 - **Phase 3-A**: 의미 기반 검색 도입 — 완료
 - **Phase 3-B**: GitHub layer 최소 구현 (github_repo, AgentRelease, webhook) — 완료
@@ -258,6 +278,10 @@
   - 3-C-1: 프로젝트 셋업 (Next 15 App Router + React 19 + TypeScript + Tailwind)
   - 3-C-2: 에이전트 목록 화면 (`/`)
   - 3-C-3: 에이전트 상세 화면 (`/agents/[id]`)
+- **Phase 3-E**: Live Demo MVP — 완료
+  - 워커 4개 HTTP 서버 의존성 제거 (인라인 함수 레지스트리)
+  - SSE 기반 라이브 이벤트 스트리밍 (`GET /api/demo/stream`)
+  - 프론트 `/demo` 페이지 — 라이브 로그 + 검색표 + invoke 카드 + DM 버블 + 타이핑 애니메이션 + Finale 패널
 
 #### Phase 3-A 완료 기록
 
@@ -314,9 +338,11 @@
 상태: 예정 (3-A/B/C 이후 착수)
 
 목표:
+
 - 3-A/B/C가 닫히면 "계획상 MVP"만 완성된다. 실제 운영/확산을 위한 축을 별도 페이즈로 둔다.
 
 후보 작업:
+
 - **YouTube layer 구현**: Content/Subscription/ContentReaction 테이블 + feed endpoint + influence_score 노출 (Phase 3-D 문서에서 설계만 됨).
 - **인증/권한**: 현재 UUID 무인증 모델 → Publisher self-serve 등록에 필요한 최소 인증 계층.
 - **운영 신뢰성**: rate limiting, structured logging, error tracking.
