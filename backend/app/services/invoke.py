@@ -6,6 +6,7 @@ from time import perf_counter
 from typing import Any
 
 import httpx
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from agents.common import post_json
@@ -15,6 +16,28 @@ from backend.app.schemas import InvokeResult
 
 class InvokeServiceError(Exception):
     """Raised when an invoke request cannot be processed."""
+
+
+def _recompute_target_metrics(session: Session, target: Agent) -> None:
+    """Refresh dynamic trust metrics from InvokeLog aggregates."""
+
+    total, successes = session.execute(
+        select(
+            func.count(InvokeLog.id),
+            func.sum(case((InvokeLog.status == "success", 1), else_=0)),
+        ).where(InvokeLog.target_id == target.id)
+    ).one()
+    if not total:
+        return
+    target.success_rate = round((successes or 0) / total, 4)
+    avg_ms = session.scalar(
+        select(func.avg(InvokeLog.response_ms)).where(
+            InvokeLog.target_id == target.id,
+            InvokeLog.status == "success",
+        )
+    )
+    if avg_ms is not None:
+        target.avg_response_ms = int(avg_ms)
 
 
 async def invoke_agent(
@@ -62,6 +85,8 @@ async def invoke_agent(
         response_ms=response_ms,
     )
     session.add(log)
+    session.flush()
+    _recompute_target_metrics(session, target)
     session.commit()
     session.refresh(log)
 

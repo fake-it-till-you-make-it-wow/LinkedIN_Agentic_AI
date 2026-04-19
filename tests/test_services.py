@@ -319,3 +319,100 @@ def test_research_agent_parser_handles_unstructured_text() -> None:
     summary, findings = _parse_research_response("free-form prose only")
     assert summary == ""
     assert findings == []
+
+
+@pytest.mark.asyncio()
+async def test_invoke_updates_success_rate_dynamically(
+    db_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Phase 2-A: 성공/실패 혼합 시 success_rate가 로그 기반으로 재계산된다."""
+
+    calls = {"n": 0}
+
+    async def fake_post_json(
+        url: str, payload: dict, timeout: float = 30.0
+    ) -> dict[str, str]:
+        del url, payload, timeout
+        calls["n"] += 1
+        if calls["n"] == 3:
+            raise RuntimeError("worker blew up")
+        return {"summary": "ok"}
+
+    monkeypatch.setattr("backend.app.services.invoke.post_json", fake_post_json)
+
+    caller = Agent(name="Caller", skill_tags=["pm"])
+    target = Agent(
+        name="Target",
+        skill_tags=["research"],
+        endpoint_url="http://worker",
+        success_rate=1.0,
+    )
+    db_session.add_all([caller, target])
+    db_session.commit()
+
+    for _ in range(3):
+        await invoke_agent(db_session, caller.id, target.id, {"query": "x"})
+
+    db_session.refresh(target)
+    assert db_session.query(InvokeLog).count() == 3
+    assert target.success_rate == round(2 / 3, 4)
+    assert target.total_calls == 2
+
+
+@pytest.mark.asyncio()
+async def test_invoke_updates_avg_response_ms_from_successes(
+    db_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Phase 2-A: avg_response_ms는 성공 invoke 평균으로 수렴한다."""
+
+    async def fake_post_json(
+        url: str, payload: dict, timeout: float = 30.0
+    ) -> dict[str, str]:
+        del url, payload, timeout
+        return {"summary": "ok"}
+
+    monkeypatch.setattr("backend.app.services.invoke.post_json", fake_post_json)
+
+    caller = Agent(name="Caller", skill_tags=["pm"])
+    target = Agent(
+        name="Target",
+        skill_tags=["research"],
+        endpoint_url="http://worker",
+        avg_response_ms=9999,
+    )
+    db_session.add_all([caller, target])
+    db_session.commit()
+
+    await invoke_agent(db_session, caller.id, target.id, {"query": "x"})
+    await invoke_agent(db_session, caller.id, target.id, {"query": "y"})
+
+    db_session.refresh(target)
+    successful_ms = [
+        row.response_ms
+        for row in db_session.scalars(
+            select(InvokeLog).where(InvokeLog.status == "success")
+        )
+    ]
+    expected_avg = int(sum(successful_ms) / len(successful_ms))
+    assert target.avg_response_ms == expected_avg
+    assert target.avg_response_ms != 9999  # seed 값 덮어써짐
+
+
+@pytest.mark.asyncio()
+async def test_invoke_metrics_untouched_without_history(db_session) -> None:
+    """Phase 2-A: 로그가 없으면 seed 수치는 그대로 유지된다."""
+
+    from backend.app.services.invoke import _recompute_target_metrics
+
+    target = Agent(
+        name="Pristine",
+        skill_tags=["research"],
+        success_rate=0.9,
+        avg_response_ms=850,
+    )
+    db_session.add(target)
+    db_session.commit()
+
+    _recompute_target_metrics(db_session, target)
+    assert target.success_rate == 0.9
+    assert target.avg_response_ms == 850
