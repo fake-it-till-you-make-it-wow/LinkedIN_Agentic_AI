@@ -56,14 +56,14 @@
 
 ### 현재 위치 (기준일: 2026-04-19)
 
-- **진행 중 Phase**: Phase 3 (서브페이즈 분할 실행 중)
-- **가장 최근 완료**: Phase 3-B (GitHub layer 최소 구현) — PR #9 open
-- **다음 예정**: Phase 3-C (Web UI)
-- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D, 3-A, 3-B
-- **테스트 수**: 41 passing (`uv run pytest` 기준)
-- **PR 체인 (stacked)**: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9(phase-3b-github-layer)
+- **진행 중 Phase**: Phase 3 (모든 서브페이즈 완료)
+- **가장 최근 완료**: Phase 3-C (Web UI — Next.js 15 App Router) — PR #10 open
+- **다음 예정**: Phase 4 (운영화/확장 — YouTube layer, 인증, Postgres, 배포)
+- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D, 3-A, 3-B, 3-C
+- **테스트 수**: 41 passing (`uv run pytest` 기준, Phase 3-C는 frontend-only이므로 백엔드 테스트 불변)
+- **PR 체인 (stacked)**: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10(phase-3c-web-ui)
   - 모두 open 상태 (main 머지는 전체 검토 후 일괄 처리 예정)
-- **남은 경로 요약**: 3-C 이후 Phase 4(운영화/확장) 착수 필요 — YouTube layer 구현, 인증·권한, SQLite→Postgres, 배포 파이프라인
+- **남은 경로 요약**: Phase 4 착수 필요 — YouTube layer 구현, 인증·권한, SQLite→Postgres, 배포 파이프라인, 퍼블리셔 self-serve
 
 ---
 
@@ -254,10 +254,10 @@
 - **Phase 3-D**: 멀티 레이어(LinkedIn/GitHub/YouTube) 설계 문서화 — 완료
 - **Phase 3-A**: 의미 기반 검색 도입 — 완료
 - **Phase 3-B**: GitHub layer 최소 구현 (github_repo, AgentRelease, webhook) — 완료
-- **Phase 3-C**: Web UI (Next.js) 추가 — 예정
-  - 3-C-1: 프로젝트 셋업
-  - 3-C-2: 에이전트 목록 화면
-  - 3-C-3: 에이전트 상세 화면
+- **Phase 3-C**: Web UI (Next.js) 추가 — 완료
+  - 3-C-1: 프로젝트 셋업 (Next 15 App Router + React 19 + TypeScript + Tailwind)
+  - 3-C-2: 에이전트 목록 화면 (`/`)
+  - 3-C-3: 에이전트 상세 화면 (`/agents/[id]`)
 
 #### Phase 3-A 완료 기록
 
@@ -284,6 +284,19 @@
 - Alembic `0004_github_layer` — `batch_alter_table`로 컬럼 추가, agent_releases 생성. downgrade 공급.
 - 서명 검증(HMAC X-Hub-Signature-256)은 Phase 4에서 도입 (현재 PoC 범위 밖).
 - 테스트 4개 추가 (총 41개): release 수신, star 수신, unknown repo ignored, community_score saturate.
+
+#### Phase 3-C 완료 기록
+
+- `frontend/` 디렉터리 신설 — Next.js 15.1.6 (App Router) + React 19 + TypeScript 5.7 + Tailwind 3.4.
+- 라이브러리 의존성 최소화: Next/React/Tailwind/PostCSS/Autoprefixer만 채택. 상태 관리/차트 라이브러리 미도입.
+- `frontend/lib/api.ts`: `Agent`, `Publisher`, `AgentStats` 타입 및 `listAgents`, `getAgent`, `getAgentStats` fetch wrapper.
+  - `API_BASE`는 `NEXT_PUBLIC_API_BASE` env 또는 `http://localhost:8000` fallback.
+- `app/layout.tsx`: 공통 헤더 + 다크 테마 CSS vars (`--bg`, `--surface`, `--border`, `--text`, `--muted`, `--accent`).
+- `app/page.tsx`: Server Component, `GET /api/agents` 호출 → 카드 그리드 (name, publisher, skill_tags, trust/community/success 배지).
+- `app/agents/[id]/page.tsx`: 동적 route, `GET /api/agents/:id` + `GET /api/agents/:id/stats` 병렬 호출 → 프로필/점수/runtime stats/career/github repo 표시.
+- `frontend/.gitignore`, `frontend/README.md` (pnpm/npm dev·build 가이드) 포함.
+- 백엔드 코드/테스트 변경 없음 → pytest 41 passing 유지.
+- Phase 4에서 검색 UI, outreach DM, publisher 페이지, 인증 연동 검토 예정.
 
 #### Phase 3-D 완료 기록
 
