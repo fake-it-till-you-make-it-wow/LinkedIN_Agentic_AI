@@ -92,6 +92,7 @@ class SearchAgentResult(AgentRead):
     """Search result payload."""
 
     specialization_match: float
+    semantic_score: float = 0.0
     final_score: float
 
 
@@ -187,10 +188,11 @@ class AdminHealth(BaseModel):
 class SearchWeights(BaseModel):
     """Search scoring weights."""
 
-    star_rating: float = 0.4
-    success_rate: float = 0.3
+    star_rating: float = 0.35
+    success_rate: float = 0.25
     response_speed: float = 0.2
     specialization: float = 0.1
+    semantic: float = 0.1
 
     @field_validator("*")
     @classmethod

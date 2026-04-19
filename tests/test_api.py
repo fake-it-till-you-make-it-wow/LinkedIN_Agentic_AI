@@ -400,6 +400,50 @@ def test_admin_health_reports_counts_and_status(app_client, db_session) -> None:
     assert body["status"] == "healthy"
 
 
+def test_search_without_query_returns_zero_semantic(app_client, db_session) -> None:
+    """Phase 3-A: q가 없으면 semantic_score는 모두 0."""
+
+    db_session.add(
+        Agent(name="Solo", skill_tags=["research"], description="anything")
+    )
+    db_session.commit()
+
+    response = app_client.get(
+        "/api/agents/search", params={"tags": "research", "limit": 5}
+    )
+    assert response.status_code == 200
+    results = response.json()
+    assert results[0]["semantic_score"] == 0.0
+
+
+def test_search_semantic_score_positive_when_query_matches(
+    app_client, db_session
+) -> None:
+    """Phase 3-A: q에 매칭되는 토큰이 있으면 semantic_score > 0."""
+
+    db_session.add(
+        Agent(
+            name="ML Researcher",
+            description="machine learning research specialist",
+            skill_tags=["research"],
+            star_rating=4.0,
+            success_rate=0.9,
+            avg_response_ms=1000,
+        )
+    )
+    db_session.commit()
+
+    response = app_client.get(
+        "/api/agents/search",
+        params={"q": "machine learning", "limit": 5},
+    )
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) == 1
+    assert results[0]["semantic_score"] > 0.0
+    assert results[0]["final_score"] > 0.0
+
+
 def test_search_limit_caps_results(app_client, db_session) -> None:
     """TC-03-06: limit 파라미터가 반환 개수를 제한한다."""
 

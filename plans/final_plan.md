@@ -57,13 +57,13 @@
 ### 현재 위치 (기준일: 2026-04-19)
 
 - **진행 중 Phase**: Phase 3 (서브페이즈 분할 실행 중)
-- **가장 최근 완료**: Phase 3-D (멀티 레이어 설계 문서화) — PR #7 open
-- **다음 예정**: Phase 3-A (의미 기반 검색)
-- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D
-- **테스트 수**: 33 passing (`uv run pytest` 기준)
-- **PR 체인 (stacked)**: #1 → #2 → #3 → #4 → #5 → #6(phase-2_1-observability) → #7(phase-3d-multi-layer-design)
+- **가장 최근 완료**: Phase 3-A (의미 기반 검색) — PR #8 open
+- **다음 예정**: Phase 3-B (GitHub layer 최소 구현)
+- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D, 3-A
+- **테스트 수**: 37 passing (`uv run pytest` 기준)
+- **PR 체인 (stacked)**: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8(phase-3a-semantic-search)
   - 모두 open 상태 (main 머지는 전체 검토 후 일괄 처리 예정)
-- **남은 경로 요약**: 3-A → 3-B → 3-C 이후 Phase 4(운영화/확장) 착수 필요 — YouTube layer 구현, 인증·권한, SQLite→Postgres, 배포 파이프라인
+- **남은 경로 요약**: 3-B → 3-C 이후 Phase 4(운영화/확장) 착수 필요 — YouTube layer 구현, 인증·권한, SQLite→Postgres, 배포 파이프라인
 
 ---
 
@@ -252,12 +252,25 @@
 
 서브페이즈:
 - **Phase 3-D**: 멀티 레이어(LinkedIn/GitHub/YouTube) 설계 문서화 — 완료
-- **Phase 3-A**: 의미 기반 검색(임베딩/벡터) 도입 — 예정
+- **Phase 3-A**: 의미 기반 검색 도입 — 완료
 - **Phase 3-B**: GitHub layer 최소 구현 (github_repo, AgentRelease, webhook) — 예정
 - **Phase 3-C**: Web UI (Next.js) 추가 — 예정
   - 3-C-1: 프로젝트 셋업
   - 3-C-2: 에이전트 목록 화면
   - 3-C-3: 에이전트 상세 화면
+
+#### Phase 3-A 완료 기록
+
+- `backend/app/services/semantic.py` 신설 — pure Python TF-IDF 코사인 유사도.
+  - 코퍼스: name + description + skill_tags + career_projects.
+  - 토큰: `[A-Za-z0-9\uac00-\ud7a3]+` (영숫자 + 한글 음절).
+  - 스무딩 IDF: `log((N+1)/(df+1)) + 1`.
+  - 새 의존성 없음 (임베딩 모델 도입은 Phase 4에서 재평가).
+- `compute_scores`에 `query_text` 파라미터 추가, `DEFAULT_WEIGHTS`에 `semantic: 0.1` 신설.
+  - 기본 가중치 재배분: star 0.4→0.35, success 0.3→0.25, response_speed 유지 0.2, specialization 유지 0.1, semantic 신설 0.1.
+- `/api/agents/search` · MCP `search_agents` tool이 `q`를 semantic 유사도 signal로 전달.
+- `SearchAgentResult`에 `semantic_score` 필드 추가.
+- 테스트 4개 추가 (총 37개): 쿼리 없을 때 0, 쿼리 매칭 시 > 0, unrelated agent는 0, 빈 쿼리 → 빈 dict.
 
 #### Phase 3-D 완료 기록
 
