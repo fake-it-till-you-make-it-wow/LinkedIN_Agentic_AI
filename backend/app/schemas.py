@@ -8,6 +8,33 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+class PublisherCreate(BaseModel):
+    """Publisher creation payload."""
+
+    name: str = Field(min_length=1, max_length=100)
+    title: str | None = Field(default=None, max_length=200)
+
+
+class PublisherRead(BaseModel):
+    """Publisher response payload."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    title: str | None
+    verified: bool
+    verified_at: datetime | None
+    verification_note: str | None
+    created_at: datetime
+
+
+class PublisherVerifyRequest(BaseModel):
+    """Publisher verification payload."""
+
+    note: str | None = Field(default=None, max_length=1000)
+
+
 class AgentBase(BaseModel):
     """Base fields shared by agent payloads."""
 
@@ -16,9 +43,7 @@ class AgentBase(BaseModel):
     skill_tags: list[str] = Field(default_factory=list)
     endpoint_url: str | None = None
     career_projects: str | None = None
-    publisher_name: str | None = None
-    publisher_title: str | None = None
-    publisher_verified: bool = False
+    publisher_id: str | None = None
     version: str = "1.0.0"
     input_schema: dict[str, Any] | None = None
     output_schema: dict[str, Any] | None = None
@@ -41,9 +66,7 @@ class AgentUpdate(BaseModel):
     skill_tags: list[str] | None = None
     endpoint_url: str | None = None
     career_projects: str | None = None
-    publisher_name: str | None = None
-    publisher_title: str | None = None
-    publisher_verified: bool | None = None
+    publisher_id: str | None = None
     version: str | None = None
     input_schema: dict[str, Any] | None = None
     output_schema: dict[str, Any] | None = None
@@ -62,6 +85,7 @@ class AgentRead(AgentBase):
     id: str
     created_at: datetime
     trust_score: float
+    publisher: PublisherRead | None = None
 
 
 class SearchAgentResult(AgentRead):

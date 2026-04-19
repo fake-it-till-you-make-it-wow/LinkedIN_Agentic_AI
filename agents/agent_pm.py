@@ -83,10 +83,11 @@ def _weighted_table(title: str, rows: list[dict[str, Any]]) -> Table:
     table.add_column("Spec")
     table.add_column("Score")
     for row in rows:
+        publisher = row.get("publisher") or {}
         table.add_row(
             row["name"],
-            row.get("publisher_name") or "-",
-            row.get("publisher_title") or "-",
+            publisher.get("name") or "-",
+            publisher.get("title") or "-",
             str(row["star_rating"]),
             f"{row['avg_response_ms']}ms",
             str(row["specialization_match"]),

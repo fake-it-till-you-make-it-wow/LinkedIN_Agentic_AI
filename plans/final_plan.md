@@ -186,7 +186,7 @@
 
 서브페이즈:
 - **Phase 2-A**: `InvokeLog` 집계를 이용한 `success_rate`, `avg_response_ms` 동적화 — 완료
-- Phase 2-B: `Publisher` 테이블 분리 + 검증 워크플로우 — 예정
+- **Phase 2-B**: `Publisher` 테이블 분리 + 검증 워크플로우 — 완료
 - Phase 2-C: `Review`를 별도 엔티티로 승격 — 예정
 - **Phase 2-D**: `search_agents` 스코어링 규칙 문서화 — 완료
 
@@ -199,6 +199,15 @@
 - 매 invoke 완료 후 target의 `success_rate`는 `count(success)/count(total)`, `avg_response_ms`는 성공 invoke 평균으로 재계산
 - 로그 0건이면 seed 초기값 유지 (신규 에이전트 영향 없음)
 - 테스트 3개 추가 (총 27개): 동적 success_rate 갱신, avg_response_ms 갱신, 로그 없을 때 seed 유지
+
+#### Phase 2-B 완료 기록
+
+- `Publisher` 모델 신설 (`name` UNIQUE, `verified`/`verified_at`/`verification_note`).
+- `Agent`의 `publisher_name/title/verified` 컬럼을 제거하고 `publisher_id` FK로 대체, `publisher_verified`는 계산 속성으로 재정의 (`Publisher.verified` 위임).
+- Alembic 마이그레이션 `0002_publisher_entity`가 동일 이름 중복 제거로 Publisher를 백필하고 기존 컬럼을 삭제. downgrade도 공급.
+- `POST /api/publishers`, `POST /api/publishers/{id}/verify` / `.../unverify` 검증 워크플로우 endpoint 추가 (이름 충돌 시 409, 검증 시 `verified_at` 자동 기록).
+- seed.py가 퍼블리셔 5명을 별도 upsert 후 에이전트가 `publisher_id`로 참조.
+- 테스트 2개 추가 (총 29개): verify/unverify/충돌 + publisher 검증 변경이 trust_score에 반영되는지 확인.
 
 ### Phase 2.1 — 운영/가시성
 
