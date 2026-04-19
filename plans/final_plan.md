@@ -57,13 +57,13 @@
 ### 현재 위치 (기준일: 2026-04-19)
 
 - **진행 중 Phase**: Phase 3 (서브페이즈 분할 실행 중)
-- **가장 최근 완료**: Phase 3-A (의미 기반 검색) — PR #8 open
-- **다음 예정**: Phase 3-B (GitHub layer 최소 구현)
-- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D, 3-A
-- **테스트 수**: 37 passing (`uv run pytest` 기준)
-- **PR 체인 (stacked)**: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8(phase-3a-semantic-search)
+- **가장 최근 완료**: Phase 3-B (GitHub layer 최소 구현) — PR #9 open
+- **다음 예정**: Phase 3-C (Web UI)
+- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D, 3-A, 3-B
+- **테스트 수**: 41 passing (`uv run pytest` 기준)
+- **PR 체인 (stacked)**: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9(phase-3b-github-layer)
   - 모두 open 상태 (main 머지는 전체 검토 후 일괄 처리 예정)
-- **남은 경로 요약**: 3-B → 3-C 이후 Phase 4(운영화/확장) 착수 필요 — YouTube layer 구현, 인증·권한, SQLite→Postgres, 배포 파이프라인
+- **남은 경로 요약**: 3-C 이후 Phase 4(운영화/확장) 착수 필요 — YouTube layer 구현, 인증·권한, SQLite→Postgres, 배포 파이프라인
 
 ---
 
@@ -253,7 +253,7 @@
 서브페이즈:
 - **Phase 3-D**: 멀티 레이어(LinkedIn/GitHub/YouTube) 설계 문서화 — 완료
 - **Phase 3-A**: 의미 기반 검색 도입 — 완료
-- **Phase 3-B**: GitHub layer 최소 구현 (github_repo, AgentRelease, webhook) — 예정
+- **Phase 3-B**: GitHub layer 최소 구현 (github_repo, AgentRelease, webhook) — 완료
 - **Phase 3-C**: Web UI (Next.js) 추가 — 예정
   - 3-C-1: 프로젝트 셋업
   - 3-C-2: 에이전트 목록 화면
@@ -271,6 +271,19 @@
 - `/api/agents/search` · MCP `search_agents` tool이 `q`를 semantic 유사도 signal로 전달.
 - `SearchAgentResult`에 `semantic_score` 필드 추가.
 - 테스트 4개 추가 (총 37개): 쿼리 없을 때 0, 쿼리 매칭 시 > 0, unrelated agent는 0, 빈 쿼리 → 빈 dict.
+
+#### Phase 3-B 완료 기록
+
+- `Agent`에 `github_repo: String(120)`, `github_star_count: Integer` 추가.
+- `community_score` 계산 속성 신설 — `min(log1p(star_count)/log1p(100), 1.0)`, 100 star에서 1.0 saturate.
+- `AgentRelease` 모델 신설 (agent_id + tag UNIQUE, CASCADE, `ix_agent_releases_agent_id`).
+- `POST /api/github/webhook` endpoint 신설 — `X-GitHub-Event: release|star` 처리.
+  - release: `action ∈ {published, released, created}`에서 AgentRelease upsert.
+  - star: `repository.stargazers_count`가 있으면 해당 값, 없으면 `created`/`deleted`로 증감.
+- `backend/app/services/github.py`: 이벤트 파싱 + 에이전트 매칭 로직 분리.
+- Alembic `0004_github_layer` — `batch_alter_table`로 컬럼 추가, agent_releases 생성. downgrade 공급.
+- 서명 검증(HMAC X-Hub-Signature-256)은 Phase 4에서 도입 (현재 PoC 범위 밖).
+- 테스트 4개 추가 (총 41개): release 수신, star 수신, unknown repo ignored, community_score saturate.
 
 #### Phase 3-D 완료 기록
 

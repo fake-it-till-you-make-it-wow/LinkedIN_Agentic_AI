@@ -214,6 +214,20 @@ def trust_score(self) -> float:
 
 `submit_review`는 Review 레코드를 삽입하고 target의 `star_rating`을 동일 target의 전체 Review `AVG(rating)`으로 재계산한다. 기존의 `(old + new)/2` 간이 평균은 Phase 2-C에서 제거되었다.
 
+### 4-5a. AgentRelease (Phase 3-B 신설)
+
+| 컬럼 | 타입 | 설명 |
+|---|---|---|
+| `id` | UUID | PK |
+| `agent_id` | UUID | FK → Agent (CASCADE) |
+| `tag` | String(100) | GitHub release tag, agent_id와 UNIQUE |
+| `name` | String(200) | release 제목 (선택) |
+| `body` | Text | release notes (선택) |
+| `published_at` | DateTime | GitHub에서 전송된 시각 |
+| `created_at` | DateTime | 수신 시각 |
+
+Agent는 `github_repo: String(120)`(형식 `owner/name`)와 `github_star_count: Integer`를 갖는다. `release` 웹훅 수신 시 `agent_releases`에 upsert되고, `star` 웹훅은 `github_star_count`를 동기화한다. `community_score`는 `min(log1p(star_count) / log1p(100), 1.0)`로 계산되어 100 star에서 1.0으로 수렴.
+
 ### 4-6. InvokeLog
 
 | 컬럼 | 타입 | 설명 |
@@ -241,6 +255,7 @@ def trust_score(self) -> float:
 | `GET` | `/api/threads/{id}` | 스레드 + 모든 메시지 |
 | `GET` | `/api/agents/{id}/stats` | 실행 통계 (Phase 2.1 완료, §7-4) |
 | `GET` | `/api/admin/health` | 운영 가시성 집계 (Phase 2.1 완료, §7-4) |
+| `POST` | `/api/github/webhook` | GitHub release/star 이벤트 수신 (Phase 3-B) |
 | `POST` | `/api/agents/{id}/invoke` | 에이전트 직접 호출 (Phase 2 REST 버전) |
 | `POST` | `/api/agents/{id}/review` | 리뷰 작성 (Phase 2) |
 | `POST` | `/api/publishers` | 퍼블리셔 등록 (미검증 상태로 생성, 이름 UNIQUE) |

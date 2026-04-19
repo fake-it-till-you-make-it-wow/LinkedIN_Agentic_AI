@@ -52,6 +52,8 @@ class AgentBase(BaseModel):
     success_rate: float = Field(default=1.0, ge=0.0, le=1.0)
     avg_response_ms: int = Field(default=1000, ge=0)
     total_calls: int = Field(default=0, ge=0)
+    github_repo: str | None = Field(default=None, max_length=120)
+    github_star_count: int = Field(default=0, ge=0)
 
 
 class AgentCreate(AgentBase):
@@ -75,6 +77,8 @@ class AgentUpdate(BaseModel):
     success_rate: float | None = Field(default=None, ge=0.0, le=1.0)
     avg_response_ms: int | None = Field(default=None, ge=0)
     total_calls: int | None = Field(default=None, ge=0)
+    github_repo: str | None = Field(default=None, max_length=120)
+    github_star_count: int | None = Field(default=None, ge=0)
 
 
 class AgentRead(AgentBase):
@@ -85,6 +89,7 @@ class AgentRead(AgentBase):
     id: str
     created_at: datetime
     trust_score: float
+    community_score: float
     publisher: PublisherRead | None = None
 
 
