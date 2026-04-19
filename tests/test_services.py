@@ -143,6 +143,8 @@ def test_submit_review_rejects_invalid_rating(db_session) -> None:
 
 
 def test_submit_review_updates_rating(db_session) -> None:
+    """첫 리뷰는 Review 테이블의 AVG가 그대로 star_rating이 된다."""
+
     from backend.mcp_server import submit_review_tool
 
     caller = Agent(name="Caller", skill_tags=["pm"])
@@ -163,7 +165,45 @@ def test_submit_review_updates_rating(db_session) -> None:
 
     result = submit_review_tool(caller.id, target.id, 5.0, "great")
     assert result["success"] is True
-    assert result["new_star_rating"] == 4.5
+    assert result["new_star_rating"] == 5.0
+
+
+def test_submit_review_aggregates_multiple_reviews(db_session) -> None:
+    """Phase 2-C: 누적된 Review의 평균이 star_rating에 반영된다."""
+
+    from backend.app.models import Review
+    from backend.mcp_server import submit_review_tool
+
+    caller = Agent(name="Caller", skill_tags=["pm"])
+    target = Agent(name="Target", skill_tags=["research"], star_rating=4.0)
+    db_session.add_all([caller, target])
+    db_session.flush()
+    db_session.add(
+        InvokeLog(
+            caller_id=caller.id,
+            target_id=target.id,
+            input_data={"query": "x"},
+            output_data=None,
+            status="success",
+            response_ms=100,
+        )
+    )
+    db_session.commit()
+
+    first = submit_review_tool(caller.id, target.id, 5.0, "first")
+    assert first["new_star_rating"] == 5.0
+
+    second = submit_review_tool(caller.id, target.id, 3.0, "second")
+    assert second["new_star_rating"] == 4.0
+
+    third = submit_review_tool(caller.id, target.id, 4.0, "")
+    assert third["new_star_rating"] == 4.0
+
+    db_session.expire_all()
+    reviews = db_session.query(Review).filter(Review.target_id == target.id).all()
+    assert len(reviews) == 3
+    assert [r.rating for r in reviews] == [5.0, 3.0, 4.0]
+    assert reviews[2].comment is None
 
 
 @pytest.mark.asyncio()

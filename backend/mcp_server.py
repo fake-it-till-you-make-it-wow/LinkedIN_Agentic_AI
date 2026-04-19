@@ -6,12 +6,12 @@ from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
 from mcp.server.fastmcp import FastMCP
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from backend.app.config import get_settings
 from backend.app.database import configure_database, get_session_factory, init_database
-from backend.app.models import Agent, InvokeLog, Thread
+from backend.app.models import Agent, InvokeLog, Review, Thread
 from backend.app.schemas import AgentRead, ReviewResult
 from backend.app.services.invoke import InvokeServiceError, invoke_agent
 from backend.app.services.outreach import OutreachServiceError, send_outreach
@@ -152,9 +152,8 @@ def submit_review_tool(
     rating: float,
     comment: str = "",
 ) -> dict[str, Any]:
-    """Update an agent rating after validating invoke history."""
+    """Persist a review and recompute the target's aggregate star_rating."""
 
-    del comment
     with _session() as session:
         caller = _agent_or_none(session, caller_agent_id)
         target = _agent_or_none(session, target_agent_id)
@@ -178,7 +177,20 @@ def submit_review_tool(
                 error="호출 이력이 없어 리뷰를 작성할 수 없습니다",
             ).model_dump(mode="json")
 
-        target.star_rating = round((target.star_rating + rating) / 2, 2)
+        session.add(
+            Review(
+                caller_id=caller.id,
+                target_id=target.id,
+                rating=rating,
+                comment=comment or None,
+            )
+        )
+        session.flush()
+        avg = session.scalar(
+            select(func.avg(Review.rating)).where(Review.target_id == target.id)
+        )
+        if avg is not None:
+            target.star_rating = round(float(avg), 2)
         session.commit()
         session.refresh(target)
         return ReviewResult(

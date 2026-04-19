@@ -175,3 +175,22 @@ class InvokeLog(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now
     )
+
+
+class Review(Base):
+    """Rating + comment left by one agent for another."""
+
+    __tablename__ = "reviews"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    caller_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("agents.id"), nullable=False
+    )
+    target_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("agents.id"), nullable=False
+    )
+    rating: Mapped[float] = mapped_column(Float, nullable=False)
+    comment: Mapped[str | None] = mapped_column(Text, default=None)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utc_now
+    )

@@ -187,7 +187,7 @@
 서브페이즈:
 - **Phase 2-A**: `InvokeLog` 집계를 이용한 `success_rate`, `avg_response_ms` 동적화 — 완료
 - **Phase 2-B**: `Publisher` 테이블 분리 + 검증 워크플로우 — 완료
-- Phase 2-C: `Review`를 별도 엔티티로 승격 — 예정
+- **Phase 2-C**: `Review`를 별도 엔티티로 승격 — 완료
 - **Phase 2-D**: `search_agents` 스코어링 규칙 문서화 — 완료
 
 완료 기준:
@@ -199,6 +199,14 @@
 - 매 invoke 완료 후 target의 `success_rate`는 `count(success)/count(total)`, `avg_response_ms`는 성공 invoke 평균으로 재계산
 - 로그 0건이면 seed 초기값 유지 (신규 에이전트 영향 없음)
 - 테스트 3개 추가 (총 27개): 동적 success_rate 갱신, avg_response_ms 갱신, 로그 없을 때 seed 유지
+
+#### Phase 2-C 완료 기록
+
+- `Review` 모델 신설 (caller/target FK, rating 0~5, comment nullable, target_id 인덱스).
+- `submit_review` MCP tool이 Review 레코드 삽입 후 동일 target 전체 `AVG(rating)`으로 `star_rating` 재계산.
+- 기존 `(old + new)/2` 간이 평균 제거 → 누적 리뷰 평균으로 일관화.
+- Alembic `0003_review_entity` 추가 (FK + index + downgrade).
+- 테스트 1개 추가 (총 30): 3개 리뷰 누적 시 `AVG`가 정확히 4.0이 되는지 + Review 레코드 persistence.
 
 #### Phase 2-B 완료 기록
 
