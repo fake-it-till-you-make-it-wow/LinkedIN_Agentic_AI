@@ -63,8 +63,8 @@
 | Phase 1 | PoC 구현 | 완료 | 백엔드, MCP, seed agents, PM demo 기본 흐름 구현 |
 | Phase 1-Eval | 평가 및 1차 리팩토링 | 완료 | `docs/EVAL_PHASE1.md`의 주요 Major 항목 반영 |
 | Phase 1.5 | 잔여 재작업 | 완료 | 테스트 보강, seed/TSD 정합성 재검증, startup 패턴 정리, Research findings 파싱 |
-| Phase 2 | 신뢰/선택 고도화 | 예정 | 동적 평판, Publisher 1급 엔티티, 운영 고도화 |
-| Phase 3 | 생태계 확장 | 예정 | Git 연동, YouTube/GitHub layer, Web UI 확장 |
+| Phase 2 | 신뢰/선택 고도화 | 완료 | 동적 평판, Publisher 1급 엔티티, Review 승격, 운영/가시성 |
+| Phase 3 | 생태계 확장 | 진행 중 | 멀티 레이어 설계(완료), 의미 검색/GitHub layer/Web UI 착수 |
 
 ---
 
@@ -231,28 +231,41 @@
 
 ### Phase 3 — 생태계 확장
 
-상태: 예정
+상태: 진행 중 (서브페이즈로 분할 실행)
 
 목표:
-- LinkedIn layer PoC를 넘어 전체 제품 비전으로 확장한다.
+- LinkedIn layer PoC를 넘어 전체 제품 비전(멀티 레이어 생태계)으로 확장한다.
 
-핵심 작업:
-- GitHub 연동 및 버전 감지
-- Web UI 추가
-- YouTube layer / GitHub layer 설계 착수
-- 벡터 검색 또는 의미 기반 검색 도입 검토
+서브페이즈:
+- **Phase 3-D**: 멀티 레이어(LinkedIn/GitHub/YouTube) 설계 문서화 — 완료
+- **Phase 3-A**: 의미 기반 검색(임베딩/벡터) 도입 — 예정
+- **Phase 3-B**: GitHub layer 최소 구현 (github_repo, AgentRelease, webhook) — 예정
+- **Phase 3-C**: Web UI (Next.js) 추가 — 예정
+  - 3-C-1: 프로젝트 셋업
+  - 3-C-2: 에이전트 목록 화면
+  - 3-C-3: 에이전트 상세 화면
+
+#### Phase 3-D 완료 기록
+
+- `docs/PRD.md` §9 "멀티 레이어 설계 (Phase 3)" 신설.
+  - §9-1: LinkedIn layer 현재 상태 정리.
+  - §9-2: GitHub layer 데이터 모델(AgentRelease, AgentStar), webhook endpoint `POST /api/github/webhook`, community_score 공식.
+  - §9-3: YouTube layer 데이터 모델(Content/Subscription/ContentReaction), feed endpoint `GET /api/agents/{id}/feed`, influence_score 분리.
+  - §9-4: 레이어 간 상호작용 ASCII 다이어그램.
+  - §9-5: 구현 우선순위 (3-A → 3-B → 3-C, YouTube layer 유보).
+- 아키텍처 원칙: 공유 엔티티는 Agent만, trust vs influence 점수 분리, 소프트 참조로 실패 격리.
+- 코드/스키마 변경 없음 (문서 전용).
 
 ---
 
 ## 6. 작업 순서 제안
 
-Phase 1.5 및 Phase 2-A는 완료되었다. 다음 실행 순서는 아래를 권장한다.
+Phase 2 전체가 완료되었다. 다음 실행 순서는 아래를 권장한다.
 
-1. Phase 2-B: Publisher 테이블 분리 + 검증 워크플로우
-2. Phase 2-C: Review 엔티티 승격 (별도 테이블 + 집계 기반 star_rating)
-3. Phase 2-D: search_agents 스코어링 규칙 문서화
-4. Phase 2.1 운영/가시성 기반 마련
-5. Phase 3 생태계 확장 탐색
+1. Phase 3-D 멀티 레이어 설계 문서화 — 완료
+2. Phase 3-A 의미 기반 검색 도입
+3. Phase 3-B GitHub layer 최소 구현
+4. Phase 3-C Web UI (Next.js) 추가
 
 ---
 
