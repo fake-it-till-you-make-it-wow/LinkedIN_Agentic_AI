@@ -179,20 +179,26 @@
 
 ### Phase 2 — 신뢰/선택 고도화
 
-상태: 예정
+상태: 진행 중 (서브페이즈로 분할 실행)
 
 목표:
 - 정적 지표 기반 PoC를 실제 운영형 신뢰 시스템으로 발전시킨다.
 
-핵심 작업:
-- `Publisher` 테이블 분리
-- Publisher 검증 상태 워크플로우 추가
-- `InvokeLog` 집계를 이용한 `success_rate`, `avg_response_ms`, `trust_score` 동적화
-- `Review`를 별도 엔티티로 승격할지 결정
-- `search_agents` 스코어링 규칙 문서화
+서브페이즈:
+- **Phase 2-A**: `InvokeLog` 집계를 이용한 `success_rate`, `avg_response_ms` 동적화 — 완료
+- Phase 2-B: `Publisher` 테이블 분리 + 검증 워크플로우 — 예정
+- Phase 2-C: `Review`를 별도 엔티티로 승격 — 예정
+- Phase 2-D: `search_agents` 스코어링 규칙 문서화 — 예정
 
 완료 기준:
 - 고정 seed 수치 없이 로그/리뷰 기반 지표 갱신 가능
+
+#### Phase 2-A 완료 기록
+
+- `backend/app/services/invoke.py`에 `_recompute_target_metrics` 헬퍼 추가
+- 매 invoke 완료 후 target의 `success_rate`는 `count(success)/count(total)`, `avg_response_ms`는 성공 invoke 평균으로 재계산
+- 로그 0건이면 seed 초기값 유지 (신규 에이전트 영향 없음)
+- 테스트 3개 추가 (총 27개): 동적 success_rate 갱신, avg_response_ms 갱신, 로그 없을 때 seed 유지
 
 ### Phase 2.1 — 운영/가시성
 
@@ -223,11 +229,13 @@
 
 ## 6. 작업 순서 제안
 
-Phase 1.5는 모두 완료되었다. 다음 실행 순서는 아래를 권장한다.
+Phase 1.5 및 Phase 2-A는 완료되었다. 다음 실행 순서는 아래를 권장한다.
 
-1. Phase 2 설계 착수 (Publisher 엔티티 분리, 동적 신뢰 지표)
-2. Phase 2.1 운영/가시성 기반 마련
-3. Phase 3 생태계 확장 탐색
+1. Phase 2-B: Publisher 테이블 분리 + 검증 워크플로우
+2. Phase 2-C: Review 엔티티 승격 (별도 테이블 + 집계 기반 star_rating)
+3. Phase 2-D: search_agents 스코어링 규칙 문서화
+4. Phase 2.1 운영/가시성 기반 마련
+5. Phase 3 생태계 확장 탐색
 
 ---
 
