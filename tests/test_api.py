@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from backend.app.models import Agent
 
 
@@ -114,3 +116,125 @@ def test_thread_detail_endpoint(app_client, db_session, monkeypatch) -> None:
 
     assert db_session.query(Thread).count() == 1
     assert db_session.query(Message).count() == 2
+
+
+def test_create_agent_missing_name_returns_422(app_client) -> None:
+    """TC-01-02: 필수 필드 누락 시 422."""
+
+    response = app_client.post(
+        "/api/agents", json={"description": "이름 없는 에이전트"}
+    )
+    assert response.status_code == 422
+    body = response.json()
+    fields = {
+        tuple(err.get("loc", []))
+        for err in body.get("detail", [])
+    }
+    assert ("body", "name") in fields
+
+
+def test_search_multi_tag_prioritizes_full_match(app_client, db_session) -> None:
+    """TC-03-03: 다중 태그 교집합이 큰 에이전트가 상위."""
+
+    db_session.add_all(
+        [
+            Agent(
+                name="CodeAgent",
+                skill_tags=["python", "code-review", "architecture"],
+                star_rating=4.7,
+                success_rate=0.9,
+                avg_response_ms=900,
+            ),
+            Agent(
+                name="Researcher",
+                skill_tags=["research", "market-analysis"],
+                star_rating=4.8,
+                success_rate=0.95,
+                avg_response_ms=900,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    response = app_client.get(
+        "/api/agents/search", params={"tags": "python,code-review", "limit": 5}
+    )
+    assert response.status_code == 200
+    results = response.json()
+    assert results[0]["name"] == "CodeAgent"
+    assert results[0]["specialization_match"] == 1.0
+    other = next(item for item in results if item["name"] == "Researcher")
+    assert other["specialization_match"] == 0.0
+
+
+def test_search_custom_weights_amplifies_specialization(
+    app_client, db_session
+) -> None:
+    """TC-03-02: specialization 가중치 상향 시 점수 차이가 벌어진다."""
+
+    db_session.add_all(
+        [
+            Agent(
+                name="Researcher",
+                skill_tags=["research"],
+                star_rating=4.0,
+                success_rate=0.9,
+                avg_response_ms=1000,
+            ),
+            Agent(
+                name="Generalist",
+                skill_tags=["general"],
+                star_rating=4.9,
+                success_rate=0.99,
+                avg_response_ms=500,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    default = app_client.get(
+        "/api/agents/search", params={"tags": "research", "limit": 5}
+    ).json()
+    default_gap = next(
+        item["final_score"] for item in default if item["name"] == "Researcher"
+    ) - next(item["final_score"] for item in default if item["name"] == "Generalist")
+
+    custom = app_client.get(
+        "/api/agents/search",
+        params={
+            "tags": "research",
+            "weights": json.dumps(
+                {
+                    "star_rating": 0.1,
+                    "specialization": 0.7,
+                    "response_speed": 0.1,
+                    "success_rate": 0.1,
+                }
+            ),
+            "limit": 5,
+        },
+    ).json()
+    custom_gap = next(
+        item["final_score"] for item in custom if item["name"] == "Researcher"
+    ) - next(item["final_score"] for item in custom if item["name"] == "Generalist")
+
+    assert custom[0]["name"] == "Researcher"
+    assert custom_gap > default_gap
+
+
+def test_search_limit_caps_results(app_client, db_session) -> None:
+    """TC-03-06: limit 파라미터가 반환 개수를 제한한다."""
+
+    db_session.add_all(
+        [
+            Agent(name=f"Agent{i}", skill_tags=["research"])
+            for i in range(3)
+        ]
+    )
+    db_session.commit()
+
+    response = app_client.get(
+        "/api/agents/search", params={"tags": "research", "limit": 1}
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 1
