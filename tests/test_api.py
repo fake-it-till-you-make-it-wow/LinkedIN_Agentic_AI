@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from backend.app.models import Agent, Publisher
+from backend.app.models import Agent, InvokeLog, Publisher, Review
 
 
 def test_create_get_and_patch_agent(app_client, db_session) -> None:
@@ -293,6 +293,111 @@ def test_publisher_verification_affects_trust_score(app_client, db_session) -> N
     after = after_response.json()["trust_score"]
 
     assert after == round(before + 0.05, 4)
+
+
+def test_agent_stats_aggregates_invokes_and_reviews(app_client, db_session) -> None:
+    """Phase 2.1: /api/agents/{id}/stats가 InvokeLog + Review 집계를 반환."""
+
+    caller = Agent(name="Caller", skill_tags=["pm"])
+    target = Agent(
+        name="Target", skill_tags=["research"], endpoint_url="http://x", star_rating=4.0
+    )
+    db_session.add_all([caller, target])
+    db_session.flush()
+    db_session.add_all(
+        [
+            InvokeLog(
+                caller_id=caller.id,
+                target_id=target.id,
+                input_data=None,
+                status="success",
+                response_ms=900,
+            ),
+            InvokeLog(
+                caller_id=caller.id,
+                target_id=target.id,
+                input_data=None,
+                status="success",
+                response_ms=1100,
+            ),
+            InvokeLog(
+                caller_id=caller.id,
+                target_id=target.id,
+                input_data=None,
+                status="error",
+                response_ms=200,
+            ),
+            Review(caller_id=caller.id, target_id=target.id, rating=4.5),
+        ]
+    )
+    db_session.commit()
+
+    response = app_client.get(f"/api/agents/{target.id}/stats")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_invocations"] == 3
+    assert body["success_count"] == 2
+    assert body["error_count"] == 1
+    assert body["timeout_count"] == 0
+    assert body["success_rate"] == round(2 / 3, 4)
+    assert body["avg_response_ms"] == 1000
+    assert body["review_count"] == 1
+    assert body["status"] in {"degraded", "failing"}
+
+
+def test_agent_stats_idle_when_no_history(app_client, db_session) -> None:
+    agent = Agent(name="Fresh", skill_tags=["new"])
+    db_session.add(agent)
+    db_session.commit()
+
+    response = app_client.get(f"/api/agents/{agent.id}/stats")
+    body = response.json()
+    assert body["total_invocations"] == 0
+    assert body["status"] == "idle"
+    assert body["avg_response_ms"] is None
+    assert body["last_invoked_at"] is None
+
+
+def test_admin_health_reports_counts_and_status(app_client, db_session) -> None:
+    """Phase 2.1: /api/admin/health가 시스템 전체 카운터와 상태 플래그 반환."""
+
+    pub = Publisher(name="Ops Pub", verified=True)
+    agent = Agent(name="Ops Agent", skill_tags=["ops"], verified=True, publisher=pub)
+    other = Agent(name="Other", skill_tags=["misc"])
+    db_session.add_all([pub, agent, other])
+    db_session.flush()
+    db_session.add_all(
+        [
+            InvokeLog(
+                caller_id=other.id,
+                target_id=agent.id,
+                input_data=None,
+                status="success",
+                response_ms=500,
+            ),
+            InvokeLog(
+                caller_id=other.id,
+                target_id=agent.id,
+                input_data=None,
+                status="success",
+                response_ms=600,
+            ),
+            Review(caller_id=other.id, target_id=agent.id, rating=5.0),
+        ]
+    )
+    db_session.commit()
+
+    response = app_client.get("/api/admin/health")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["agents_total"] == 2
+    assert body["agents_verified"] == 1
+    assert body["publishers_total"] == 1
+    assert body["publishers_verified"] == 1
+    assert body["invocations_total"] == 2
+    assert body["invocation_error_rate"] == 0.0
+    assert body["reviews_total"] == 1
+    assert body["status"] == "healthy"
 
 
 def test_search_limit_caps_results(app_client, db_session) -> None:

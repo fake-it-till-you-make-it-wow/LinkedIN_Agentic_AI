@@ -219,15 +219,15 @@
 
 ### Phase 2.1 — 운영/가시성
 
-상태: 예정
+상태: 완료
 
-목표:
-- 데모용 앱에서 운영 가능한 서비스로 진화시키기 위한 최소 운영 기반을 마련한다.
-
-핵심 작업:
-- 에러율/타임아웃 기반 상태 플래그
-- 간단한 관리자 조회 API 또는 내부 대시보드용 endpoint
-- 로깅/관측 포맷 정리
+완료 기록:
+- `backend/app/services/observability.py` 신설 — Agent/Publisher/InvokeLog/Review 집계.
+- `GET /api/agents/{id}/stats`: 호출 건수/성공·실패·타임아웃 분해, 성공 호출 평균 응답시간, 리뷰 수, `last_invoked_at`, `status` 플래그(idle/healthy/degraded/failing) 제공.
+- `GET /api/admin/health`: 에이전트/퍼블리셔 총계·검증수, invoke 총계·에러율, 리뷰 총계, 시스템 `status` 제공.
+- 상태 임계값: error_rate `<0.1` → healthy, `<0.3` → degraded, 그 외 failing, 호출 0건이면 idle.
+- 테스트 3개 추가 (총 33): agent stats 집계, idle 케이스, admin health 카운터/상태.
+- 로깅 포맷 정리는 범위 밖으로 보류 (Phase 3에서 structured logging 도입 시 재평가).
 
 ### Phase 3 — 생태계 확장
 

@@ -239,7 +239,8 @@ def trust_score(self) -> float:
 | `GET` | `/api/agents/search` | 가중치 검색 (`?q=&tags=&weights=`) |
 | `GET` | `/api/agents/{id}/threads` | 해당 에이전트의 스레드 목록 |
 | `GET` | `/api/threads/{id}` | 스레드 + 모든 메시지 |
-| `GET` | `/api/agents/{id}/stats` | 실행 통계 (Phase 2) |
+| `GET` | `/api/agents/{id}/stats` | 실행 통계 (Phase 2.1 완료, §7-4) |
+| `GET` | `/api/admin/health` | 운영 가시성 집계 (Phase 2.1 완료, §7-4) |
 | `POST` | `/api/agents/{id}/invoke` | 에이전트 직접 호출 (Phase 2 REST 버전) |
 | `POST` | `/api/agents/{id}/review` | 리뷰 작성 (Phase 2) |
 | `POST` | `/api/publishers` | 퍼블리셔 등록 (미검증 상태로 생성, 이름 UNIQUE) |
@@ -380,6 +381,31 @@ trust_score = (
 ```
 
 `compute_scores`의 검색 스코어와는 별도 지표. 검색 스코어는 쿼리 태그와의 `specialization`을 포함하며 가중치 조정이 가능하지만, `trust_score`는 에이전트 단독 평가용으로 고정 가중치를 사용한다.
+
+### 7-4. 운영 가시성 (Phase 2.1)
+
+`backend/app/services/observability.py`가 InvokeLog/Review/Publisher/Agent 집계를 담당한다.
+
+`GET /api/agents/{id}/stats` → `compute_agent_stats`:
+- `total_invocations`, `success_count`, `error_count`, `timeout_count`
+- `success_rate` = success / total
+- `avg_response_ms` = 성공 호출 평균 (없으면 null)
+- `review_count`, `star_rating`
+- `last_invoked_at` = MAX(InvokeLog.created_at)
+- `status`: `error_rate = (error + timeout) / total` 기준
+  - `total == 0` → `idle`
+  - `error_rate < 0.1` → `healthy`
+  - `< 0.3` → `degraded`
+  - 그 외 → `failing`
+
+`GET /api/admin/health` → `compute_admin_health`:
+- `agents_total`, `agents_verified`
+- `publishers_total`, `publishers_verified`
+- `invocations_total`, `invocation_error_rate`
+- `reviews_total`
+- `status`: 전체 `invocation_error_rate` 기준 동일 임계값 사용
+
+임계값은 `HEALTHY_ERROR_THRESHOLD=0.1`, `DEGRADED_ERROR_THRESHOLD=0.3`으로 서비스 파일에 상수 정의.
 
 ### 7-3. 신뢰 지표 동적 집계 (Phase 2-A)
 
