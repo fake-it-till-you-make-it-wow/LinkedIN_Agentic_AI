@@ -9,7 +9,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db_session
-from backend.app.models import Agent, Message, Thread
+from backend.app.models import Agent, Message, Publisher, Thread
 from backend.app.schemas import (
     AgentCreate,
     AgentRead,
@@ -65,11 +65,12 @@ def search_agents(
 
     statement = select(Agent)
     if q:
+        statement = statement.outerjoin(Publisher, Agent.publisher_id == Publisher.id)
         statement = statement.where(
             or_(
                 Agent.name.ilike(f"%{q}%"),
                 Agent.description.ilike(f"%{q}%"),
-                Agent.publisher_name.ilike(f"%{q}%"),
+                Publisher.name.ilike(f"%{q}%"),
             )
         )
     agents = list(session.scalars(statement).all())

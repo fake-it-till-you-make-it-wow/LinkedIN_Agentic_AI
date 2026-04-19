@@ -45,7 +45,10 @@ def search_agents_tool(
                 for agent in agents
                 if lowered in agent.name.lower()
                 or lowered in (agent.description or "").lower()
-                or lowered in (agent.publisher_name or "").lower()
+                or (
+                    agent.publisher is not None
+                    and lowered in agent.publisher.name.lower()
+                )
             ]
         scored = compute_scores(agents, tags or [], weights)[:limit]
         results: list[dict[str, Any]] = []

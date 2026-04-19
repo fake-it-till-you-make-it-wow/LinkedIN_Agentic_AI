@@ -23,6 +23,26 @@ def new_uuid() -> str:
     return str(uuid.uuid4())
 
 
+class Publisher(Base):
+    """Publisher entity — a human expert who backs one or more agents."""
+
+    __tablename__ = "publishers"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    title: Mapped[str | None] = mapped_column(String(200), default=None)
+    verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    verification_note: Mapped[str | None] = mapped_column(Text, default=None)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utc_now
+    )
+
+    agents: Mapped[list[Agent]] = relationship(back_populates="publisher")
+
+
 class Agent(Base):
     """Registered agent profile."""
 
@@ -36,10 +56,8 @@ class Agent(Base):
     )
     endpoint_url: Mapped[str | None] = mapped_column(String(500), default=None)
     career_projects: Mapped[str | None] = mapped_column(Text, default=None)
-    publisher_name: Mapped[str | None] = mapped_column(String(100), default=None)
-    publisher_title: Mapped[str | None] = mapped_column(String(200), default=None)
-    publisher_verified: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False
+    publisher_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("publishers.id"), default=None
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now
@@ -53,6 +71,7 @@ class Agent(Base):
     avg_response_ms: Mapped[int] = mapped_column(Integer, default=1000, nullable=False)
     total_calls: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    publisher: Mapped[Publisher | None] = relationship(back_populates="agents")
     initiated_threads: Mapped[list[Thread]] = relationship(
         back_populates="initiator",
         foreign_keys="Thread.initiator_id",
@@ -62,6 +81,12 @@ class Agent(Base):
         foreign_keys="Thread.target_id",
     )
     sent_messages: Mapped[list[Message]] = relationship(back_populates="sender")
+
+    @property
+    def publisher_verified(self) -> bool:
+        """True iff the linked publisher is verified."""
+
+        return self.publisher is not None and self.publisher.verified
 
     @property
     def trust_score(self) -> float:

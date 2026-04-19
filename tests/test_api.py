@@ -4,31 +4,41 @@ from __future__ import annotations
 
 import json
 
-from backend.app.models import Agent
+from backend.app.models import Agent, Publisher
 
 
-def test_create_get_and_patch_agent(app_client) -> None:
+def test_create_get_and_patch_agent(app_client, db_session) -> None:
+    publisher = Publisher(name="Tester")
+    db_session.add(publisher)
+    db_session.commit()
+
     payload = {
         "name": "Minimal Agent",
         "skill_tags": ["research"],
-        "publisher_name": "Tester",
+        "publisher_id": publisher.id,
     }
     create_response = app_client.post("/api/agents", json=payload)
     assert create_response.status_code == 201
     created = create_response.json()
     assert created["name"] == "Minimal Agent"
+    assert created["publisher"]["name"] == "Tester"
+    assert created["publisher"]["verified"] is False
     assert created["trust_score"] == 0.46
 
     get_response = app_client.get(f"/api/agents/{created['id']}")
     assert get_response.status_code == 200
-    assert get_response.json()["publisher_name"] == "Tester"
+    assert get_response.json()["publisher"]["name"] == "Tester"
+
+    verify_response = app_client.post(f"/api/publishers/{publisher.id}/verify")
+    assert verify_response.status_code == 200
+    assert verify_response.json()["verified"] is True
 
     patch_response = app_client.patch(
         f"/api/agents/{created['id']}",
-        json={"publisher_verified": True, "verified": True, "star_rating": 4.5},
+        json={"verified": True, "star_rating": 4.5},
     )
     assert patch_response.status_code == 200
-    assert patch_response.json()["publisher_verified"] is True
+    assert patch_response.json()["publisher"]["verified"] is True
     assert patch_response.json()["trust_score"] > created["trust_score"]
 
 
@@ -70,7 +80,7 @@ def test_trust_score_boundaries() -> None:
         success_rate=1.0,
         avg_response_ms=0,
         verified=True,
-        publisher_verified=True,
+        publisher=Publisher(name="Max Publisher", verified=True),
     )
     minimum = Agent(
         name="Min",
@@ -79,7 +89,6 @@ def test_trust_score_boundaries() -> None:
         success_rate=0.0,
         avg_response_ms=6000,
         verified=False,
-        publisher_verified=False,
     )
 
     assert maximum.trust_score == 1.0
@@ -220,6 +229,70 @@ def test_search_custom_weights_amplifies_specialization(
 
     assert custom[0]["name"] == "Researcher"
     assert custom_gap > default_gap
+
+
+def test_publisher_verification_workflow(app_client) -> None:
+    """Phase 2-B: publisher 등록 → 미검증 상태 → verify → unverify."""
+
+    create_response = app_client.post(
+        "/api/publishers",
+        json={"name": "Workflow Publisher", "title": "Tester"},
+    )
+    assert create_response.status_code == 201
+    publisher = create_response.json()
+    assert publisher["verified"] is False
+    assert publisher["verified_at"] is None
+
+    duplicate = app_client.post(
+        "/api/publishers",
+        json={"name": "Workflow Publisher"},
+    )
+    assert duplicate.status_code == 409
+
+    verify_response = app_client.post(
+        f"/api/publishers/{publisher['id']}/verify",
+        json={"note": "링크드인 프로필 확인"},
+    )
+    assert verify_response.status_code == 200
+    body = verify_response.json()
+    assert body["verified"] is True
+    assert body["verified_at"] is not None
+    assert body["verification_note"] == "링크드인 프로필 확인"
+
+    unverify_response = app_client.post(
+        f"/api/publishers/{publisher['id']}/unverify"
+    )
+    assert unverify_response.status_code == 200
+    assert unverify_response.json()["verified"] is False
+    assert unverify_response.json()["verified_at"] is None
+
+
+def test_publisher_verification_affects_trust_score(app_client, db_session) -> None:
+    """publisher.verified 변경이 에이전트 trust_score에 즉시 반영된다."""
+
+    publisher = Publisher(name="Trust Source")
+    db_session.add(publisher)
+    db_session.commit()
+
+    agent_response = app_client.post(
+        "/api/agents",
+        json={
+            "name": "Trust Agent",
+            "skill_tags": ["research"],
+            "publisher_id": publisher.id,
+            "star_rating": 4.0,
+            "success_rate": 0.9,
+            "avg_response_ms": 1000,
+            "verified": True,
+        },
+    )
+    before = agent_response.json()["trust_score"]
+
+    app_client.post(f"/api/publishers/{publisher.id}/verify")
+    after_response = app_client.get(f"/api/agents/{agent_response.json()['id']}")
+    after = after_response.json()["trust_score"]
+
+    assert after == round(before + 0.05, 4)
 
 
 def test_search_limit_caps_results(app_client, db_session) -> None:
