@@ -438,6 +438,42 @@ async def test_invoke_updates_avg_response_ms_from_successes(
     assert target.avg_response_ms != 9999  # seed 값 덮어써짐
 
 
+def test_semantic_scores_exclude_unrelated_agents(db_session) -> None:
+    """Phase 3-A: 쿼리 토큰이 전혀 없는 에이전트는 similarity 0."""
+
+    from backend.app.services.semantic import compute_semantic_scores
+
+    match = Agent(
+        name="ML Researcher",
+        description="machine learning deep learning",
+        skill_tags=["research"],
+    )
+    unrelated = Agent(
+        name="Chef",
+        description="professional cooking",
+        skill_tags=["cooking"],
+    )
+    db_session.add_all([match, unrelated])
+    db_session.commit()
+
+    scores = compute_semantic_scores([match, unrelated], "machine learning")
+    assert scores[match.id] > 0.0
+    assert scores[unrelated.id] == 0.0
+
+
+def test_semantic_scores_empty_query_returns_empty_mapping(db_session) -> None:
+    """Phase 3-A: 빈 쿼리는 빈 dict."""
+
+    from backend.app.services.semantic import compute_semantic_scores
+
+    agent = Agent(name="Solo", description="stuff", skill_tags=["x"])
+    db_session.add(agent)
+    db_session.commit()
+
+    assert compute_semantic_scores([agent], "") == {}
+    assert compute_semantic_scores([agent], "   ") == {}
+
+
 @pytest.mark.asyncio()
 async def test_invoke_metrics_untouched_without_history(db_session) -> None:
     """Phase 2-A: 로그가 없으면 seed 수치는 그대로 유지된다."""

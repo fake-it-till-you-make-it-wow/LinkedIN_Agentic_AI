@@ -50,11 +50,14 @@ def search_agents_tool(
                     and lowered in agent.publisher.name.lower()
                 )
             ]
-        scored = compute_scores(agents, tags or [], weights)[:limit]
+        scored = compute_scores(
+            agents, tags or [], weights, query_text=query or None
+        )[:limit]
         results: list[dict[str, Any]] = []
         for item in scored:
             payload = AgentRead.model_validate(item.agent).model_dump(mode="json")
             payload["specialization_match"] = item.specialization_match
+            payload["semantic_score"] = item.semantic_score
             payload["final_score"] = item.final_score
             results.append(payload)
         return results

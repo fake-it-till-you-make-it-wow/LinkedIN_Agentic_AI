@@ -264,21 +264,22 @@ def trust_score(self) -> float:
 
 ```
 입력:
-  query: str = ""
+  query: str = ""            # 자연어 질의. 텍스트 필터 + semantic 유사도 양쪽에 사용됨 (Phase 3-A)
   tags: list[str] = []
   weights: dict = {
-    "star_rating": 0.4,
-    "success_rate": 0.3,
+    "star_rating":    0.35,
+    "success_rate":   0.25,
     "response_speed": 0.2,
-    "specialization": 0.1
+    "specialization": 0.1,
+    "semantic":       0.1    # Phase 3-A 추가
   }
   limit: int = 5
 
 출력: list[{
   id, name, description, skill_tags,
-  publisher_name, publisher_title, publisher_verified,
+  publisher: {id, name, title, verified, ...} | null,
   verified, star_rating, success_rate, avg_response_ms,
-  trust_score, specialization_match, final_score
+  trust_score, specialization_match, semantic_score, final_score
 }]
 ```
 
@@ -329,32 +330,45 @@ def trust_score(self) -> float:
 
 ```python
 DEFAULT_WEIGHTS = {
-    "star_rating":   0.4,
-    "success_rate":  0.3,
+    "star_rating":    0.35,
+    "success_rate":   0.25,
     "response_speed": 0.2,
     "specialization": 0.1,
+    "semantic":       0.1,   # Phase 3-A 추가
 }
 
 def compute_scores(
     agents: Sequence[Agent],
     query_tags: Sequence[str],
     weights: dict[str, float] | None = None,
+    query_text: str | None = None,   # Phase 3-A 추가
 ) -> list[ScoredAgent]:
     effective_weights = {**DEFAULT_WEIGHTS, **(weights or {})}
     requested_tags = {t.strip().lower() for t in query_tags if t.strip()}
+    semantic_scores = (
+        compute_semantic_scores(agents, query_text)
+        if query_text and query_text.strip()
+        else {}
+    )
     results = []
     for a in agents:
         agent_tags = {t.lower() for t in (a.skill_tags or [])}
         specialization = len(agent_tags & requested_tags) / max(len(requested_tags), 1)
         speed = 1 - min(a.avg_response_ms / 5000, 1.0)
+        semantic = semantic_scores.get(a.id, 0.0)
         score = (
-            effective_weights["star_rating"]    * (a.star_rating / 5)
-            + effective_weights["success_rate"]  * a.success_rate
+            effective_weights["star_rating"]     * (a.star_rating / 5)
+            + effective_weights["success_rate"]   * a.success_rate
             + effective_weights["response_speed"] * speed
             + effective_weights["specialization"] * specialization
+            + effective_weights.get("semantic", 0.0) * semantic
         )
-        results.append(ScoredAgent(agent=a, specialization_match=round(specialization, 4),
-                                   final_score=round(score, 4)))
+        results.append(ScoredAgent(
+            agent=a,
+            specialization_match=round(specialization, 4),
+            semantic_score=round(semantic, 4),
+            final_score=round(score, 4),
+        ))
     return sorted(results, key=lambda x: x.final_score, reverse=True)
 ```
 
@@ -364,6 +378,16 @@ def compute_scores(
 - `query_tags`가 비면 `specialization` 분모는 `1`로 간주 (0으로 나누기 방지) → 기여도 0으로 수렴.
 - `speed`는 `avg_response_ms`를 5000ms 기준으로 정규화한 역수. 5000ms 이상이면 0.
 - `star_rating`은 0~5 스케일을 0~1로 환산. 나머지 항은 이미 0~1 범위.
+
+### 7-1a. Semantic 유사도 (`backend/app/services/semantic.py`, Phase 3-A)
+
+- `compute_semantic_scores(agents, query_text)`는 순수 Python TF-IDF 코사인 유사도를 반환.
+- 각 에이전트 코퍼스 = `name + description + skill_tags + career_projects`.
+- 토큰화는 `[A-Za-z0-9\uac00-\ud7a3]+` 정규식 (영숫자 + 한글 음절).
+- IDF 스무딩: `log((N + 1) / (df + 1)) + 1` — 모든 문서에 나타난 단어도 0이 아닌 가중치를 받음.
+- 쿼리에만 존재하고 코퍼스에 없는 토큰은 DF=0으로 처리되어 자연스럽게 스킵됨.
+- 결과는 `[0.0, 1.0]`로 클램프. `query_text`가 비거나 에이전트가 0명이면 빈 dict 반환.
+- 임베딩 모델 기반 semantic search는 Phase 4에서 재평가 (현재는 새 의존성 없이 PoC 수준 검색 품질 확보).
 
 ### 7-2. 에이전트 `trust_score`
 

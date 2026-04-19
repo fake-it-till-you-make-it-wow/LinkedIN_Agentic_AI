@@ -80,7 +80,9 @@ def search_agents(
     parsed_weights = SearchWeights().model_dump()
     if weights:
         parsed_weights = SearchWeights.model_validate(json.loads(weights)).model_dump()
-    scored = compute_scores(agents, tag_list, parsed_weights)[:limit]
+    scored = compute_scores(
+        agents, tag_list, parsed_weights, query_text=q or None
+    )[:limit]
 
     results: list[SearchAgentResult] = []
     for item in scored:
@@ -89,6 +91,7 @@ def search_agents(
             SearchAgentResult(
                 **data,
                 specialization_match=item.specialization_match,
+                semantic_score=item.semantic_score,
                 final_score=item.final_score,
             )
         )
