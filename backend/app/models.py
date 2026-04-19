@@ -2,11 +2,22 @@
 
 from __future__ import annotations
 
+import math
 import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -70,8 +81,15 @@ class Agent(Base):
     success_rate: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
     avg_response_ms: Mapped[int] = mapped_column(Integer, default=1000, nullable=False)
     total_calls: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    github_repo: Mapped[str | None] = mapped_column(String(120), default=None)
+    github_star_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     publisher: Mapped[Publisher | None] = relationship(back_populates="agents")
+    releases: Mapped[list[AgentRelease]] = relationship(
+        back_populates="agent",
+        cascade="all, delete-orphan",
+        order_by="AgentRelease.published_at.desc()",
+    )
     initiated_threads: Mapped[list[Thread]] = relationship(
         back_populates="initiator",
         foreign_keys="Thread.initiator_id",
@@ -101,6 +119,15 @@ class Agent(Base):
             + 0.05 * int(self.publisher_verified)
         )
         return round(score, 4)
+
+    @property
+    def community_score(self) -> float:
+        """Saturate GitHub star count to [0, 1] on a log scale (Phase 3-B)."""
+
+        if self.github_star_count <= 0:
+            return 0.0
+        score = math.log1p(self.github_star_count) / math.log1p(100)
+        return round(min(1.0, max(0.0, score)), 4)
 
 
 class Thread(Base):
@@ -194,3 +221,28 @@ class Review(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now
     )
+
+
+class AgentRelease(Base):
+    """Release record for an Agent's linked GitHub repository (Phase 3-B)."""
+
+    __tablename__ = "agent_releases"
+    __table_args__ = (
+        UniqueConstraint("agent_id", "tag", name="uq_agent_releases_agent_id_tag"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    agent_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("agents.id", ondelete="CASCADE"), nullable=False
+    )
+    tag: Mapped[str] = mapped_column(String(100), nullable=False)
+    name: Mapped[str | None] = mapped_column(String(200), default=None)
+    body: Mapped[str | None] = mapped_column(Text, default=None)
+    published_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utc_now
+    )
+
+    agent: Mapped[Agent] = relationship(back_populates="releases")

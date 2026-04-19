@@ -444,6 +444,102 @@ def test_search_semantic_score_positive_when_query_matches(
     assert results[0]["final_score"] > 0.0
 
 
+def test_github_webhook_release_records_version(app_client, db_session) -> None:
+    """Phase 3-B: release 이벤트가 AgentRelease 행을 생성한다."""
+
+    from backend.app.models import AgentRelease
+
+    agent = Agent(name="Repo Agent", skill_tags=["ml"], github_repo="acme/agent")
+    db_session.add(agent)
+    db_session.commit()
+
+    response = app_client.post(
+        "/api/github/webhook",
+        headers={"X-GitHub-Event": "release"},
+        json={
+            "action": "published",
+            "repository": {"full_name": "acme/agent"},
+            "release": {
+                "tag_name": "v1.0.0",
+                "name": "First release",
+                "body": "notes",
+                "published_at": "2026-04-19T10:00:00Z",
+            },
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["tag"] == "v1.0.0"
+
+    releases = db_session.query(AgentRelease).all()
+    assert len(releases) == 1
+    assert releases[0].tag == "v1.0.0"
+    assert releases[0].name == "First release"
+
+
+def test_github_webhook_star_updates_count(app_client, db_session) -> None:
+    """Phase 3-B: star 이벤트가 stargazers_count로 동기화된다."""
+
+    agent = Agent(
+        name="Star Agent",
+        skill_tags=["ml"],
+        github_repo="acme/star",
+        github_star_count=0,
+    )
+    db_session.add(agent)
+    db_session.commit()
+
+    response = app_client.post(
+        "/api/github/webhook",
+        headers={"X-GitHub-Event": "star"},
+        json={
+            "action": "created",
+            "repository": {"full_name": "acme/star", "stargazers_count": 42},
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["star_count"] == 42
+
+    db_session.expire_all()
+    assert db_session.get(Agent, agent.id).github_star_count == 42
+
+
+def test_github_webhook_ignores_unknown_repo(app_client, db_session) -> None:
+    """Phase 3-B: 매칭되는 Agent가 없으면 ignored."""
+
+    del db_session
+    response = app_client.post(
+        "/api/github/webhook",
+        headers={"X-GitHub-Event": "release"},
+        json={
+            "action": "published",
+            "repository": {"full_name": "someone/unknown"},
+            "release": {"tag_name": "v0.1.0"},
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "ignored"
+
+
+def test_agent_community_score_saturates(db_session) -> None:
+    """Phase 3-B: community_score는 star=0에서 0, star=100에서 1.0으로 수렴."""
+
+    zero = Agent(name="Fresh", skill_tags=[], github_star_count=0)
+    mid = Agent(name="Mid", skill_tags=[], github_star_count=10)
+    cap = Agent(name="Cap", skill_tags=[], github_star_count=100)
+    over = Agent(name="Over", skill_tags=[], github_star_count=1000)
+    db_session.add_all([zero, mid, cap, over])
+    db_session.commit()
+
+    assert zero.community_score == 0.0
+    assert 0 < mid.community_score < 1.0
+    assert cap.community_score == 1.0
+    assert over.community_score == 1.0
+
+
 def test_search_limit_caps_results(app_client, db_session) -> None:
     """TC-03-06: limit 파라미터가 반환 개수를 제한한다."""
 
