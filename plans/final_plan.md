@@ -52,6 +52,18 @@
   - v1: 7개
   - v2: 11개
   - Phase 1.5: 24개
+  - Phase 2-A 이후: 27개 → 29개 → 30개 → 33개 (Phase 2.1 시점)
+
+### 현재 위치 (기준일: 2026-04-19)
+
+- **진행 중 Phase**: Phase 3 (서브페이즈 분할 실행 중)
+- **가장 최근 완료**: Phase 3-D (멀티 레이어 설계 문서화) — PR #7 open
+- **다음 예정**: Phase 3-A (의미 기반 검색)
+- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D
+- **테스트 수**: 33 passing (`uv run pytest` 기준)
+- **PR 체인 (stacked)**: #1 → #2 → #3 → #4 → #5 → #6(phase-2_1-observability) → #7(phase-3d-multi-layer-design)
+  - 모두 open 상태 (main 머지는 전체 검토 후 일괄 처리 예정)
+- **남은 경로 요약**: 3-A → 3-B → 3-C 이후 Phase 4(운영화/확장) 착수 필요 — YouTube layer 구현, 인증·권한, SQLite→Postgres, 배포 파이프라인
 
 ---
 
@@ -63,8 +75,10 @@
 | Phase 1 | PoC 구현 | 완료 | 백엔드, MCP, seed agents, PM demo 기본 흐름 구현 |
 | Phase 1-Eval | 평가 및 1차 리팩토링 | 완료 | `docs/EVAL_PHASE1.md`의 주요 Major 항목 반영 |
 | Phase 1.5 | 잔여 재작업 | 완료 | 테스트 보강, seed/TSD 정합성 재검증, startup 패턴 정리, Research findings 파싱 |
-| Phase 2 | 신뢰/선택 고도화 | 예정 | 동적 평판, Publisher 1급 엔티티, 운영 고도화 |
-| Phase 3 | 생태계 확장 | 예정 | Git 연동, YouTube/GitHub layer, Web UI 확장 |
+| Phase 2 | 신뢰/선택 고도화 | 완료 | 동적 평판, Publisher 1급 엔티티, Review 승격 |
+| Phase 2.1 | 운영/가시성 | 완료 | agent stats + admin health 엔드포인트 |
+| Phase 3 | 생태계 확장 | 진행 중 | 3-D 완료, 3-A/3-B/3-C 예정 |
+| Phase 4 | 운영화/확장 (후보) | 예정 | YouTube layer 구현, 인증, Postgres, 배포, 퍼블리셔 self-serve |
 
 ---
 
@@ -179,7 +193,7 @@
 
 ### Phase 2 — 신뢰/선택 고도화
 
-상태: 진행 중 (서브페이즈로 분할 실행)
+상태: 완료 (서브페이즈 2-A/B/C/D 모두 종료)
 
 목표:
 - 정적 지표 기반 PoC를 실제 운영형 신뢰 시스템으로 발전시킨다.
@@ -231,28 +245,57 @@
 
 ### Phase 3 — 생태계 확장
 
-상태: 예정
+상태: 진행 중 (서브페이즈로 분할 실행)
 
 목표:
-- LinkedIn layer PoC를 넘어 전체 제품 비전으로 확장한다.
+- LinkedIn layer PoC를 넘어 전체 제품 비전(멀티 레이어 생태계)으로 확장한다.
 
-핵심 작업:
-- GitHub 연동 및 버전 감지
-- Web UI 추가
-- YouTube layer / GitHub layer 설계 착수
-- 벡터 검색 또는 의미 기반 검색 도입 검토
+서브페이즈:
+- **Phase 3-D**: 멀티 레이어(LinkedIn/GitHub/YouTube) 설계 문서화 — 완료
+- **Phase 3-A**: 의미 기반 검색(임베딩/벡터) 도입 — 예정
+- **Phase 3-B**: GitHub layer 최소 구현 (github_repo, AgentRelease, webhook) — 예정
+- **Phase 3-C**: Web UI (Next.js) 추가 — 예정
+  - 3-C-1: 프로젝트 셋업
+  - 3-C-2: 에이전트 목록 화면
+  - 3-C-3: 에이전트 상세 화면
+
+#### Phase 3-D 완료 기록
+
+- `docs/PRD.md` §9 "멀티 레이어 설계 (Phase 3)" 신설.
+  - §9-1: LinkedIn layer 현재 상태 정리.
+  - §9-2: GitHub layer 데이터 모델(AgentRelease, AgentStar), webhook endpoint `POST /api/github/webhook`, community_score 공식.
+  - §9-3: YouTube layer 데이터 모델(Content/Subscription/ContentReaction), feed endpoint `GET /api/agents/{id}/feed`, influence_score 분리.
+  - §9-4: 레이어 간 상호작용 ASCII 다이어그램.
+  - §9-5: 구현 우선순위 (3-A → 3-B → 3-C, YouTube layer 유보).
+- 아키텍처 원칙: 공유 엔티티는 Agent만, trust vs influence 점수 분리, 소프트 참조로 실패 격리.
+- 코드/스키마 변경 없음 (문서 전용).
+
+### Phase 4 — 운영화/확장 (후보)
+
+상태: 예정 (3-A/B/C 이후 착수)
+
+목표:
+- 3-A/B/C가 닫히면 "계획상 MVP"만 완성된다. 실제 운영/확산을 위한 축을 별도 페이즈로 둔다.
+
+후보 작업:
+- **YouTube layer 구현**: Content/Subscription/ContentReaction 테이블 + feed endpoint + influence_score 노출 (Phase 3-D 문서에서 설계만 됨).
+- **인증/권한**: 현재 UUID 무인증 모델 → Publisher self-serve 등록에 필요한 최소 인증 계층.
+- **운영 신뢰성**: rate limiting, structured logging, error tracking.
+- **스케일**: SQLite → Postgres 이관, 임베딩 저장소(pgvector 등).
+- **배포**: CI/CD 파이프라인, 호스팅 환경 결정.
+- **생태계 유입**: seed 5개 이상 커뮤니티 유입 경로, 퍼블리셔 self-serve 등록 플로우.
 
 ---
 
 ## 6. 작업 순서 제안
 
-Phase 1.5 및 Phase 2-A는 완료되었다. 다음 실행 순서는 아래를 권장한다.
+Phase 2 및 Phase 2.1 완료, Phase 3-D 완료. 다음 실행 순서:
 
-1. Phase 2-B: Publisher 테이블 분리 + 검증 워크플로우
-2. Phase 2-C: Review 엔티티 승격 (별도 테이블 + 집계 기반 star_rating)
-3. Phase 2-D: search_agents 스코어링 규칙 문서화
-4. Phase 2.1 운영/가시성 기반 마련
-5. Phase 3 생태계 확장 탐색
+1. Phase 3-D 멀티 레이어 설계 문서화 — 완료
+2. Phase 3-A 의미 기반 검색 도입 — 다음 순번
+3. Phase 3-B GitHub layer 최소 구현
+4. Phase 3-C Web UI (Next.js) 추가
+5. Phase 4 운영화/확장 착수 (YouTube layer, 인증, Postgres, 배포)
 
 ---
 
