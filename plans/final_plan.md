@@ -51,6 +51,7 @@
 - 테스트 수 확장
   - v1: 7개
   - v2: 11개
+  - Phase 1.5: 24개
 
 ---
 
@@ -61,7 +62,7 @@
 | Phase 0 | 문서/하네스/기본 계획 | 완료 | PRD/TSD/TEST_CASE/CLAUDE 정리 및 초기 계획 수립 |
 | Phase 1 | PoC 구현 | 완료 | 백엔드, MCP, seed agents, PM demo 기본 흐름 구현 |
 | Phase 1-Eval | 평가 및 1차 리팩토링 | 완료 | `docs/EVAL_PHASE1.md`의 주요 Major 항목 반영 |
-| Phase 1.5 | 잔여 재작업 | 진행 필요 | 테스트 보강, seed/TSD 정합성, startup 패턴 정리 |
+| Phase 1.5 | 잔여 재작업 | 완료 | 테스트 보강, seed/TSD 정합성 재검증, startup 패턴 정리, Research findings 파싱 |
 | Phase 2 | 신뢰/선택 고도화 | 예정 | 동적 평판, Publisher 1급 엔티티, 운영 고도화 |
 | Phase 3 | 생태계 확장 | 예정 | Git 연동, YouTube/GitHub layer, Web UI 확장 |
 
@@ -103,7 +104,7 @@
 
 ### Phase 1.5-A — 테스트 보강
 
-상태: 진행 필요
+상태: 완료 (총 24개 테스트)
 
 목표:
 - `docs/TEST_CASE.md`와 실제 테스트의 간극을 줄인다.
@@ -129,7 +130,7 @@
 
 ### Phase 1.5-B — seed / 명세 정합성
 
-상태: 부분 완료, 재검증 필요
+상태: 완료 (재검증 결과 seed ↔ TSD Marketing/Design input/output_schema 모두 일치)
 
 목표:
 - seed 데이터가 TSD와 1:1로 맞도록 정리한다.
@@ -144,7 +145,7 @@
 
 ### Phase 1.5-C — FastAPI startup 패턴 정리
 
-상태: 진행 필요
+상태: 완료 (researcher/coder/marketer/designer 4개 파일 lifespan 전환)
 
 목표:
 - worker agent들의 deprecated startup 훅을 최신 패턴으로 전환한다.
@@ -159,7 +160,7 @@
 
 ### Phase 1.5-D — Research Agent 응답 품질 개선
 
-상태: 진행 필요
+상태: 완료 (SUMMARY/bullet 파싱 기반 summary + key_findings 동시 생성)
 
 목표:
 - `agent_researcher.py`에서 summary만 LLM 사용하고 findings는 고정 문자열인 상태를 개선한다.
@@ -222,13 +223,11 @@
 
 ## 6. 작업 순서 제안
 
-Codex의 다음 실행 순서는 아래를 권장한다.
+Phase 1.5는 모두 완료되었다. 다음 실행 순서는 아래를 권장한다.
 
-1. Phase 1.5-A 테스트 보강
-2. Phase 1.5-C startup 패턴 정리
-3. Phase 1.5-D Research Agent 응답 품질 개선
-4. Phase 1.5-B 문서/seed 정합성 최종 보정
-5. Phase 2 설계 착수
+1. Phase 2 설계 착수 (Publisher 엔티티 분리, 동적 신뢰 지표)
+2. Phase 2.1 운영/가시성 기반 마련
+3. Phase 3 생태계 확장 탐색
 
 ---
 

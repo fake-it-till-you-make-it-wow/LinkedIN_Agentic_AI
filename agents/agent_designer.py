@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
@@ -29,12 +31,13 @@ class InvokePayload(BaseModel):
     platform: str = "terminal"
 
 
-app = FastAPI(title="Design Agent")
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     print_backend_info()
+    yield
+
+
+app = FastAPI(title="Design Agent", lifespan=lifespan)
 
 
 @app.post("/incoming")
