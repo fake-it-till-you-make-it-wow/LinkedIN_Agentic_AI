@@ -27,6 +27,13 @@ uv.lock
 # Database
 *.db
 *.sqlite3
+*.db-wal
+*.db-shm
+*.sqlite3-wal
+*.sqlite3-shm
+
+# Logs
+*.log
 
 # OS
 .DS_Store

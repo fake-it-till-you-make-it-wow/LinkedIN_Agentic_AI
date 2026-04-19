@@ -135,10 +135,7 @@ def test_create_agent_missing_name_returns_422(app_client) -> None:
     )
     assert response.status_code == 422
     body = response.json()
-    fields = {
-        tuple(err.get("loc", []))
-        for err in body.get("detail", [])
-    }
+    fields = {tuple(err.get("loc", [])) for err in body.get("detail", [])}
     assert ("body", "name") in fields
 
 
@@ -176,9 +173,7 @@ def test_search_multi_tag_prioritizes_full_match(app_client, db_session) -> None
     assert other["specialization_match"] == 0.0
 
 
-def test_search_custom_weights_amplifies_specialization(
-    app_client, db_session
-) -> None:
+def test_search_custom_weights_amplifies_specialization(app_client, db_session) -> None:
     """TC-03-02: specialization 가중치 상향 시 점수 차이가 벌어진다."""
 
     db_session.add_all(
@@ -259,9 +254,7 @@ def test_publisher_verification_workflow(app_client) -> None:
     assert body["verified_at"] is not None
     assert body["verification_note"] == "링크드인 프로필 확인"
 
-    unverify_response = app_client.post(
-        f"/api/publishers/{publisher['id']}/unverify"
-    )
+    unverify_response = app_client.post(f"/api/publishers/{publisher['id']}/unverify")
     assert unverify_response.status_code == 200
     assert unverify_response.json()["verified"] is False
     assert unverify_response.json()["verified_at"] is None
@@ -403,9 +396,7 @@ def test_admin_health_reports_counts_and_status(app_client, db_session) -> None:
 def test_search_without_query_returns_zero_semantic(app_client, db_session) -> None:
     """Phase 3-A: q가 없으면 semantic_score는 모두 0."""
 
-    db_session.add(
-        Agent(name="Solo", skill_tags=["research"], description="anything")
-    )
+    db_session.add(Agent(name="Solo", skill_tags=["research"], description="anything"))
     db_session.commit()
 
     response = app_client.get(
@@ -544,10 +535,7 @@ def test_search_limit_caps_results(app_client, db_session) -> None:
     """TC-03-06: limit 파라미터가 반환 개수를 제한한다."""
 
     db_session.add_all(
-        [
-            Agent(name=f"Agent{i}", skill_tags=["research"])
-            for i in range(3)
-        ]
+        [Agent(name=f"Agent{i}", skill_tags=["research"]) for i in range(3)]
     )
     db_session.commit()
 
