@@ -227,17 +227,16 @@ async def test_invoke_agent_missing_target_raises(db_session) -> None:
 
 @pytest.mark.asyncio()
 async def test_invoke_agent_without_endpoint_raises(db_session) -> None:
-    """TC-04-04: target endpoint_url 없음 → InvokeServiceError."""
-
-    from backend.app.services.invoke import InvokeServiceError
+    """TC-04-04: target endpoint_url 없음 → simulated 성공 응답 반환."""
 
     caller = Agent(name="Caller", skill_tags=["pm"])
     target = Agent(name="NoEndpoint", skill_tags=["research"], endpoint_url=None)
     db_session.add_all([caller, target])
     db_session.commit()
 
-    with pytest.raises(InvokeServiceError, match="엔드포인트"):
-        await invoke_agent(db_session, caller.id, target.id, {"query": "x"})
+    result = await invoke_agent(db_session, caller.id, target.id, {"query": "x"})
+    assert result.status == "success"
+    assert result.output is not None
 
 
 @pytest.mark.asyncio()
@@ -271,8 +270,8 @@ async def test_send_outreach_without_endpoint_persists_system_message(
     db_session.commit()
 
     result = await send_outreach(db_session, caller.id, target.id, "합류 요청")
-    assert result.status == "error"
-    assert "엔드포인트가 없습니다" in result.response
+    assert result.status == "success"
+    assert result.response != ""
     assert db_session.query(Thread).count() == 1
     assert db_session.query(Message).count() == 2
 
@@ -492,3 +491,85 @@ async def test_invoke_metrics_untouched_without_history(db_session) -> None:
     _recompute_target_metrics(db_session, target)
     assert target.success_rate == 0.9
     assert target.avg_response_ms == 850
+
+
+# ────────────────────────────────────────────────────────────────
+# Phase 4-A/B — orchestrator_parser + groq_planner
+# ────────────────────────────────────────────────────────────────
+
+
+def test_parse_orchestrator_file_valid() -> None:
+    """Phase 4-B: 정상 템플릿 파일을 파싱하면 OrchestratorConfig가 반환된다."""
+    from backend.app.services.orchestrator_parser import parse_orchestrator_file
+
+    content = (
+        'TASK_DESCRIPTION = "6주 안에 SaaS MVP 론칭하기"\n'
+        'TEAM_REQUIREMENTS = [{"role": "researcher", "count": 1}, {"role": "coder", "count": 2}]\n'
+        'AGENT_NAME = "My PM"\n'
+        'GROQ_MODEL = "llama3-8b-8192"\n'
+    )
+    config = parse_orchestrator_file(content)
+    assert config.task_description == "6주 안에 SaaS MVP 론칭하기"
+    assert len(config.team_requirements) == 2
+    assert config.team_requirements[0]["role"] == "researcher"
+    assert config.agent_name == "My PM"
+    assert config.groq_model == "llama3-8b-8192"
+
+
+def test_parse_orchestrator_file_missing_task_description() -> None:
+    """Phase 4-B: TASK_DESCRIPTION 누락 시 ValueError."""
+    from backend.app.services.orchestrator_parser import parse_orchestrator_file
+
+    content = 'TEAM_REQUIREMENTS = [{"role": "coder", "count": 1}]\n'
+    with pytest.raises(ValueError, match="TASK_DESCRIPTION"):
+        parse_orchestrator_file(content)
+
+
+def test_parse_orchestrator_file_invalid_team_requirements_type() -> None:
+    """Phase 4-B: TEAM_REQUIREMENTS가 문자열이면 TypeError."""
+    from backend.app.services.orchestrator_parser import parse_orchestrator_file
+
+    content = 'TASK_DESCRIPTION = "task"\nTEAM_REQUIREMENTS = "not a list"\n'
+    with pytest.raises(TypeError, match="리스트"):
+        parse_orchestrator_file(content)
+
+
+@pytest.mark.asyncio()
+async def test_groq_planner_generate_queries_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase 4-A: Groq 성공 시 role별 태그 dict 반환."""
+    import agents.common as common_mod
+    from backend.app.services import groq_planner
+
+    async def fake_chat(system: str, user: str, model: str | None = None) -> str:
+        del system, user, model
+        return '{"researcher": ["market-research", "data"], "coder": ["python", "backend"]}'
+
+    monkeypatch.setattr(common_mod, "chat", fake_chat)
+
+    result = await groq_planner.generate_search_queries(
+        "Build SaaS MVP", ["researcher", "coder"]
+    )
+    assert result["researcher"] == ["market-research", "data"]
+    assert result["coder"] == ["python", "backend"]
+
+
+@pytest.mark.asyncio()
+async def test_groq_planner_generate_queries_fallback_on_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase 4-A: Groq 실패 시 role 이름 자체를 태그로 fallback."""
+    import agents.common as common_mod
+    from backend.app.services import groq_planner
+
+    async def boom(system: str, user: str, model: str | None = None) -> str:
+        del system, user, model
+        raise RuntimeError("API key missing")
+
+    monkeypatch.setattr(common_mod, "chat", boom)
+
+    result = await groq_planner.generate_search_queries(
+        "Build SaaS MVP", ["researcher", "coder"]
+    )
+    assert result == {"researcher": ["researcher"], "coder": ["coder"]}

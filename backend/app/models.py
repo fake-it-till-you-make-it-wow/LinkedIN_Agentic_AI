@@ -498,3 +498,27 @@ class AgentRelease(Base):
 
     # 이 릴리스가 속한 에이전트 (역참조)
     agent: Mapped[Agent] = relationship(back_populates="releases")
+
+
+# ──────────────────────────────────────────────
+# FormedTeam (데모에서 결성된 팀 기록)
+# ──────────────────────────────────────────────
+
+
+class FormedTeam(Base):
+    """데모 실행 후 결성된 팀 정보를 영속 저장하는 모델.
+
+    【DB 테이블】 formed_teams
+    """
+
+    __tablename__ = "formed_teams"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    mission: Mapped[str] = mapped_column(String, nullable=False)
+    members: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
+    stats: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON, nullable=True, default=None
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utc_now
+    )

@@ -16,4 +16,11 @@ body {
   background-color: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  font-feature-settings: "kern";
+  letter-spacing: -0.01em;
+}
+
+*:focus-visible {
+  outline: 2px dashed var(--accent);
+  outline-offset: 3px;
 }

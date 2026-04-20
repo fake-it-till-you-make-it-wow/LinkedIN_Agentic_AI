@@ -1,0 +1,1443 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "AgentLinkedIn", "version": "0.1.0" },
+  "paths": {
+    "/api/admin/health": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "Admin Health",
+        "description": "Return system-level counters + status flag.",
+        "operationId": "admin_health_api_admin_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminHealth" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents": {
+      "get": {
+        "tags": ["agents"],
+        "summary": "List Agents",
+        "description": "Return all registered agents.",
+        "operationId": "list_agents_api_agents_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": { "$ref": "#/components/schemas/AgentRead" },
+                  "type": "array",
+                  "title": "Response List Agents Api Agents Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["agents"],
+        "summary": "Create Agent",
+        "description": "Create an agent profile.",
+        "operationId": "create_agent_api_agents_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AgentCreate" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentRead" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/search": {
+      "get": {
+        "tags": ["agents"],
+        "summary": "Search Agents",
+        "description": "Search agents and rank them by weighted score.",
+        "operationId": "search_agents_api_agents_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "default": "", "title": "Q" }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "default": "", "title": "Tags" }
+          },
+          {
+            "name": "weights",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "default": "", "title": "Weights" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 5,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/SearchAgentResult" },
+                  "title": "Response Search Agents Api Agents Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/{agent_id}": {
+      "get": {
+        "tags": ["agents"],
+        "summary": "Get Agent",
+        "description": "Return a single agent profile.",
+        "operationId": "get_agent_api_agents__agent_id__get",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Agent Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentRead" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["agents"],
+        "summary": "Update Agent",
+        "description": "Partially update an agent profile.",
+        "operationId": "update_agent_api_agents__agent_id__patch",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Agent Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AgentUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentRead" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/{agent_id}/stats": {
+      "get": {
+        "tags": ["agents"],
+        "summary": "Get Agent Stats",
+        "description": "Return operational metrics + status flag for an agent.",
+        "operationId": "get_agent_stats_api_agents__agent_id__stats_get",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Agent Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentStats" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/{agent_id}/threads": {
+      "get": {
+        "tags": ["agents"],
+        "summary": "Get Agent Threads",
+        "description": "Return thread summaries for a given agent.",
+        "operationId": "get_agent_threads_api_agents__agent_id__threads_get",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Agent Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ThreadSummary" },
+                  "title": "Response Get Agent Threads Api Agents  Agent Id  Threads Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demo/stream": {
+      "get": {
+        "tags": ["demo"],
+        "summary": "Demo Stream",
+        "description": "SSE 스트림. 연결되면 PM 데모를 실행하며 이벤트를 송출한다.\n\nsession_id가 주어지면 해당 세션의 OrchestratorConfig로 동적 데모를 실행한다.\nsession_id가 없거나 만료된 경우 기본 하드코딩 5막 데모를 실행한다.\n\n브라우저에서는 `new EventSource('/api/demo/stream')` 로 구독한다.\n각 이벤트는 `event: <type>\\ndata: <json>\\n\\n` 형식으로 전송된다.\n데모가 완료되거나 에러가 발생하면 `finale` 또는 `error` 이벤트 뒤에\n서버가 스트림을 닫는다.",
+        "operationId": "demo_stream_api_demo_stream_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/github/webhook": {
+      "post": {
+        "tags": ["github"],
+        "summary": "Github Webhook",
+        "description": "GitHub 웹훅 이벤트를 수신하고 종류에 맞는 핸들러로 분기한다.\n\n【GitHub 설정 방법】\n  저장소 Settings → Webhooks → Add webhook\n  Payload URL: https://your-server.com/api/github/webhook\n  Content type: application/json\n  Events: \"Releases\", \"Stars\" 체크\n\n【요청 형식】\n  POST /api/github/webhook\n  Headers:\n    X-GitHub-Event: release  (또는 star)\n    Content-Type: application/json\n  Body: GitHub 이벤트 JSON 페이로드\n\n【응답 형식】\n  성공(릴리스): {\"status\": \"ok\", \"agent_id\": \"...\", \"tag\": \"v1.2.0\"}\n  성공(스타):   {\"status\": \"ok\", \"agent_id\": \"...\", \"star_count\": 42}\n  무시됨:       {\"status\": \"ignored\", \"reason\": \"...\"}\n  실패:         HTTP 400 + {\"detail\": \"에러 메시지\"}\n\n【서명 검증 미구현 안내】\n  보안을 위해 GitHub는 X-Hub-Signature-256 헤더로 HMAC 서명을 보냄.\n  현재는 PoC 단계이므로 검증하지 않음. Phase 4에서 구현 예정.",
+        "operationId": "github_webhook_api_github_webhook_post",
+        "parameters": [
+          {
+            "name": "x-github-event",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Github-Event"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Github Webhook Api Github Webhook Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orchestrator/upload": {
+      "post": {
+        "tags": ["orchestrator"],
+        "summary": "Upload Orchestrator",
+        "description": "Python 템플릿 파일을 업로드해 오케스트레이터 세션을 생성한다.\n\nReturns:\n    session_id, task_description, team_requirements, agent_name",
+        "operationId": "upload_orchestrator_api_orchestrator_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_orchestrator_api_orchestrator_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Upload Orchestrator Api Orchestrator Upload Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orchestrator/template": {
+      "get": {
+        "tags": ["orchestrator"],
+        "summary": "Download Template",
+        "description": "오케스트레이터 Python 템플릿 파일을 다운로드한다.",
+        "operationId": "download_template_api_orchestrator_template_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/api/publishers": {
+      "get": {
+        "tags": ["publishers"],
+        "summary": "List Publishers",
+        "operationId": "list_publishers_api_publishers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": { "$ref": "#/components/schemas/PublisherRead" },
+                  "type": "array",
+                  "title": "Response List Publishers Api Publishers Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["publishers"],
+        "summary": "Create Publisher",
+        "description": "Register a new publisher. Starts unverified.",
+        "operationId": "create_publisher_api_publishers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PublisherCreate" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublisherRead" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publishers/{publisher_id}": {
+      "get": {
+        "tags": ["publishers"],
+        "summary": "Get Publisher",
+        "operationId": "get_publisher_api_publishers__publisher_id__get",
+        "parameters": [
+          {
+            "name": "publisher_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Publisher Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublisherRead" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publishers/{publisher_id}/verify": {
+      "post": {
+        "tags": ["publishers"],
+        "summary": "Verify Publisher",
+        "description": "Mark a publisher as verified with an optional evidence note.",
+        "operationId": "verify_publisher_api_publishers__publisher_id__verify_post",
+        "parameters": [
+          {
+            "name": "publisher_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Publisher Id" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  { "$ref": "#/components/schemas/PublisherVerifyRequest" },
+                  { "type": "null" }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublisherRead" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publishers/{publisher_id}/unverify": {
+      "post": {
+        "tags": ["publishers"],
+        "summary": "Unverify Publisher",
+        "description": "Revoke a publisher's verification.",
+        "operationId": "unverify_publisher_api_publishers__publisher_id__unverify_post",
+        "parameters": [
+          {
+            "name": "publisher_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Publisher Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublisherRead" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teams": {
+      "get": {
+        "tags": ["teams"],
+        "summary": "List Teams",
+        "operationId": "list_teams_api_teams_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": { "$ref": "#/components/schemas/TeamRead" },
+                  "type": "array",
+                  "title": "Response List Teams Api Teams Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teams/{team_id}": {
+      "delete": {
+        "tags": ["teams"],
+        "summary": "Delete Team",
+        "operationId": "delete_team_api_teams__team_id__delete",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Team Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/threads/{thread_id}": {
+      "get": {
+        "tags": ["threads"],
+        "summary": "Get Thread",
+        "description": "Return thread detail with all messages.",
+        "operationId": "get_thread_api_threads__thread_id__get",
+        "parameters": [
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Thread Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ThreadRead" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "summary": "Healthz",
+        "description": "서버가 살아있는지 확인하는 헬스체크 엔드포인트.\n\n로드 밸런서나 모니터링 도구가 주기적으로 호출합니다.\nDB 장애와 무관하게 서버 프로세스 자체가 응답하는지만 확인합니다.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": { "type": "string" },
+                  "type": "object",
+                  "title": "Response Healthz Healthz Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminHealth": {
+        "properties": {
+          "agents_total": { "type": "integer", "title": "Agents Total" },
+          "agents_verified": { "type": "integer", "title": "Agents Verified" },
+          "publishers_total": {
+            "type": "integer",
+            "title": "Publishers Total"
+          },
+          "publishers_verified": {
+            "type": "integer",
+            "title": "Publishers Verified"
+          },
+          "invocations_total": {
+            "type": "integer",
+            "title": "Invocations Total"
+          },
+          "invocation_error_rate": {
+            "type": "number",
+            "title": "Invocation Error Rate"
+          },
+          "reviews_total": { "type": "integer", "title": "Reviews Total" },
+          "status": { "type": "string", "title": "Status" }
+        },
+        "type": "object",
+        "required": [
+          "agents_total",
+          "agents_verified",
+          "publishers_total",
+          "publishers_verified",
+          "invocations_total",
+          "invocation_error_rate",
+          "reviews_total",
+          "status"
+        ],
+        "title": "AdminHealth",
+        "description": "전체 시스템 상태 요약. 관리자 대시보드용."
+      },
+      "AgentCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "skill_tags": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Skill Tags"
+          },
+          "endpoint_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Endpoint Url"
+          },
+          "career_projects": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Career Projects"
+          },
+          "publisher_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Publisher Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "default": "1.0.0"
+          },
+          "input_schema": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Input Schema"
+          },
+          "output_schema": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Output Schema"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "default": false
+          },
+          "star_rating": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Star Rating",
+            "default": 0.0
+          },
+          "success_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Success Rate",
+            "default": 1.0
+          },
+          "avg_response_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Avg Response Ms",
+            "default": 1000
+          },
+          "total_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Calls",
+            "default": 0
+          },
+          "github_repo": {
+            "anyOf": [
+              { "type": "string", "maxLength": 120 },
+              { "type": "null" }
+            ],
+            "title": "Github Repo"
+          },
+          "github_star_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Github Star Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "AgentCreate",
+        "description": "에이전트 등록 시 클라이언트가 보내는 요청 바디.\n\n사용: POST /api/agents\nAgentBase의 모든 필드를 그대로 사용. 추가 필드 없음."
+      },
+      "AgentRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "skill_tags": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Skill Tags"
+          },
+          "endpoint_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Endpoint Url"
+          },
+          "career_projects": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Career Projects"
+          },
+          "publisher_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Publisher Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "default": "1.0.0"
+          },
+          "input_schema": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Input Schema"
+          },
+          "output_schema": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Output Schema"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "default": false
+          },
+          "star_rating": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Star Rating",
+            "default": 0.0
+          },
+          "success_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Success Rate",
+            "default": 1.0
+          },
+          "avg_response_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Avg Response Ms",
+            "default": 1000
+          },
+          "total_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Calls",
+            "default": 0
+          },
+          "github_repo": {
+            "anyOf": [
+              { "type": "string", "maxLength": 120 },
+              { "type": "null" }
+            ],
+            "title": "Github Repo"
+          },
+          "github_star_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Github Star Count",
+            "default": 0
+          },
+          "id": { "type": "string", "title": "Id" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "trust_score": { "type": "number", "title": "Trust Score" },
+          "community_score": { "type": "number", "title": "Community Score" },
+          "publisher": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/PublisherRead" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "created_at",
+          "trust_score",
+          "community_score"
+        ],
+        "title": "AgentRead",
+        "description": "에이전트 조회 시 서버가 반환하는 응답 형식.\n\nAgentBase 필드 + DB 전용 필드(id, created_at) + 계산 점수 2개.\n\n【trust_score】  별점·성공률·응답속도·검증 여부를 종합한 신뢰 지수 (0~1)\n【community_score】 GitHub ★ 수를 로그 정규화한 커뮤니티 점수 (0~1)\n두 점수는 models.py의 Agent 프로퍼티에서 자동 계산됩니다."
+      },
+      "AgentStats": {
+        "properties": {
+          "agent_id": { "type": "string", "title": "Agent Id" },
+          "total_invocations": {
+            "type": "integer",
+            "title": "Total Invocations"
+          },
+          "success_count": { "type": "integer", "title": "Success Count" },
+          "error_count": { "type": "integer", "title": "Error Count" },
+          "timeout_count": { "type": "integer", "title": "Timeout Count" },
+          "success_rate": { "type": "number", "title": "Success Rate" },
+          "avg_response_ms": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Avg Response Ms"
+          },
+          "review_count": { "type": "integer", "title": "Review Count" },
+          "star_rating": { "type": "number", "title": "Star Rating" },
+          "last_invoked_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Last Invoked At"
+          },
+          "status": { "type": "string", "title": "Status" }
+        },
+        "type": "object",
+        "required": [
+          "agent_id",
+          "total_invocations",
+          "success_count",
+          "error_count",
+          "timeout_count",
+          "success_rate",
+          "avg_response_ms",
+          "review_count",
+          "star_rating",
+          "last_invoked_at",
+          "status"
+        ],
+        "title": "AgentStats",
+        "description": "에이전트별 운영 통계. 관리자 대시보드용.\n\nInvokeLog와 Review 데이터를 집계해서 만들어집니다."
+      },
+      "AgentUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 100, "minLength": 1 },
+              { "type": "null" }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "skill_tags": {
+            "anyOf": [
+              { "items": { "type": "string" }, "type": "array" },
+              { "type": "null" }
+            ],
+            "title": "Skill Tags"
+          },
+          "endpoint_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Endpoint Url"
+          },
+          "career_projects": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Career Projects"
+          },
+          "publisher_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Publisher Id"
+          },
+          "version": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Version"
+          },
+          "input_schema": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Input Schema"
+          },
+          "output_schema": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Output Schema"
+          },
+          "verified": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Verified"
+          },
+          "star_rating": {
+            "anyOf": [
+              { "type": "number", "maximum": 5.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Star Rating"
+          },
+          "success_rate": {
+            "anyOf": [
+              { "type": "number", "maximum": 1.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Success Rate"
+          },
+          "avg_response_ms": {
+            "anyOf": [
+              { "type": "integer", "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Avg Response Ms"
+          },
+          "total_calls": {
+            "anyOf": [
+              { "type": "integer", "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Total Calls"
+          },
+          "github_repo": {
+            "anyOf": [
+              { "type": "string", "maxLength": 120 },
+              { "type": "null" }
+            ],
+            "title": "Github Repo"
+          },
+          "github_star_count": {
+            "anyOf": [
+              { "type": "integer", "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Github Star Count"
+          }
+        },
+        "type": "object",
+        "title": "AgentUpdate",
+        "description": "에이전트 부분 업데이트 시 클라이언트가 보내는 요청 바디.\n\n사용: PATCH /api/agents/{id}\n모든 필드가 Optional(None 허용)입니다.\n보내지 않은 필드는 기존 값을 그대로 유지합니다."
+      },
+      "Body_upload_orchestrator_api_orchestrator_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": ["file"],
+        "title": "Body_upload_orchestrator_api_orchestrator_upload_post"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MessageRead": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "thread_id": { "type": "string", "title": "Thread Id" },
+          "sender_id": { "type": "string", "title": "Sender Id" },
+          "content": { "type": "string", "title": "Content" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "thread_id", "sender_id", "content", "created_at"],
+        "title": "MessageRead",
+        "description": "메시지 조회 응답 형식."
+      },
+      "PublisherCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "title": {
+            "anyOf": [
+              { "type": "string", "maxLength": 200 },
+              { "type": "null" }
+            ],
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "PublisherCreate",
+        "description": "퍼블리셔 등록 시 클라이언트가 보내는 요청 바디.\n\n사용: POST /api/publishers"
+      },
+      "PublisherRead": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "title": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Title"
+          },
+          "verified": { "type": "boolean", "title": "Verified" },
+          "verified_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Verified At"
+          },
+          "verification_note": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Verification Note"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "title",
+          "verified",
+          "verified_at",
+          "verification_note",
+          "created_at"
+        ],
+        "title": "PublisherRead",
+        "description": "퍼블리셔 조회 시 서버가 반환하는 응답 형식.\n\nmodel_config = ConfigDict(from_attributes=True):\n  SQLAlchemy ORM 객체(Publisher)를 이 Pydantic 모델로 자동 변환 가능."
+      },
+      "PublisherVerifyRequest": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              { "type": "string", "maxLength": 1000 },
+              { "type": "null" }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "PublisherVerifyRequest",
+        "description": "퍼블리셔 검증 승인 시 관리자가 보내는 요청 바디.\n\n사용: PUT /api/publishers/{id}/verify"
+      },
+      "SearchAgentResult": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "skill_tags": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Skill Tags"
+          },
+          "endpoint_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Endpoint Url"
+          },
+          "career_projects": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Career Projects"
+          },
+          "publisher_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Publisher Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "default": "1.0.0"
+          },
+          "input_schema": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Input Schema"
+          },
+          "output_schema": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Output Schema"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "default": false
+          },
+          "star_rating": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Star Rating",
+            "default": 0.0
+          },
+          "success_rate": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Success Rate",
+            "default": 1.0
+          },
+          "avg_response_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Avg Response Ms",
+            "default": 1000
+          },
+          "total_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Calls",
+            "default": 0
+          },
+          "github_repo": {
+            "anyOf": [
+              { "type": "string", "maxLength": 120 },
+              { "type": "null" }
+            ],
+            "title": "Github Repo"
+          },
+          "github_star_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Github Star Count",
+            "default": 0
+          },
+          "id": { "type": "string", "title": "Id" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "trust_score": { "type": "number", "title": "Trust Score" },
+          "community_score": { "type": "number", "title": "Community Score" },
+          "publisher": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/PublisherRead" },
+              { "type": "null" }
+            ]
+          },
+          "specialization_match": {
+            "type": "number",
+            "title": "Specialization Match"
+          },
+          "semantic_score": {
+            "type": "number",
+            "title": "Semantic Score",
+            "default": 0.0
+          },
+          "final_score": { "type": "number", "title": "Final Score" }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "created_at",
+          "trust_score",
+          "community_score",
+          "specialization_match",
+          "final_score"
+        ],
+        "title": "SearchAgentResult",
+        "description": "에이전트 검색 결과 응답. AgentRead에 검색 점수 3개가 추가됩니다.\n\n사용: MCP search_agents 도구 응답, GET /api/agents?query=...\n\n【점수 3가지 의미】\n  specialization_match : 요청한 태그(예: \"research\")와 에이전트 태그의 일치 비율\n  semantic_score       : TF-IDF 기반 의미론적 유사도 점수 (Phase 3-A)\n  final_score          : 가중치를 적용한 최종 랭킹 점수 (높을수록 상위)"
+      },
+      "TeamMemberRead": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "role": { "type": "string", "title": "Role" }
+        },
+        "type": "object",
+        "required": ["id", "name", "role"],
+        "title": "TeamMemberRead",
+        "description": "팀 구성원 단건 정보."
+      },
+      "TeamRead": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "mission": { "type": "string", "title": "Mission" },
+          "members": {
+            "items": { "$ref": "#/components/schemas/TeamMemberRead" },
+            "type": "array",
+            "title": "Members"
+          },
+          "stats": {
+            "anyOf": [
+              {
+                "additionalProperties": { "type": "integer" },
+                "type": "object"
+              },
+              { "type": "null" }
+            ],
+            "title": "Stats"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "mission", "members", "stats", "created_at"],
+        "title": "TeamRead",
+        "description": "결성된 팀 조회 응답 형식."
+      },
+      "ThreadRead": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "initiator_id": { "type": "string", "title": "Initiator Id" },
+          "target_id": { "type": "string", "title": "Target Id" },
+          "subject": { "type": "string", "title": "Subject" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "messages": {
+            "items": { "$ref": "#/components/schemas/MessageRead" },
+            "type": "array",
+            "title": "Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "initiator_id",
+          "target_id",
+          "subject",
+          "created_at",
+          "messages"
+        ],
+        "title": "ThreadRead",
+        "description": "대화 스레드 상세 조회 응답 형식. 메시지 목록도 포함합니다."
+      },
+      "ThreadSummary": {
+        "properties": {
+          "thread_id": { "type": "string", "title": "Thread Id" },
+          "subject": { "type": "string", "title": "Subject" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "other_agent": { "$ref": "#/components/schemas/AgentRead" },
+          "last_message": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/MessageRead" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "thread_id",
+          "subject",
+          "created_at",
+          "other_agent",
+          "last_message"
+        ],
+        "title": "ThreadSummary",
+        "description": "대화 스레드 목록 조회 응답 형식. 마지막 메시지만 포함합니다.\n\n사용: get_my_threads MCP 도구, GET /api/threads/{agent_id}\nThreadRead보다 가벼운 형식으로, 목록 화면에서 사용합니다."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" },
+          "input": { "title": "Input" },
+          "ctx": { "type": "object", "title": "Context" }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

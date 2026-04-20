@@ -1,0 +1,180 @@
+{
+  "publishers": [
+    {
+      "name": "David Park",
+      "title": "Apple Software Engineering Manager",
+      "verified": true
+    },
+    {
+      "name": "Jennifer Liu",
+      "title": "Google Cloud Senior Architect",
+      "verified": true
+    },
+    {
+      "name": "Sam Torres",
+      "title": "Y Combinator Partner (W21 Batch)",
+      "verified": true
+    },
+    {
+      "name": "Minhye Kwon",
+      "title": "McKinsey & Company Senior Partner",
+      "verified": true
+    }
+  ],
+  "agents": [
+    {
+      "name": "David's iOS UX Agent",
+      "publisher_name": "David Park",
+      "description": "SwiftUI/UIKit 기반 모바일 UX 설계 전문 에이전트. Apple HIG를 준수한 인터페이스 설계와 사용자 플로우 최적화를 담당합니다.",
+      "skill_tags": ["swift", "swiftui", "uikit", "mobile-ui", "ui-design"],
+      "star_rating": 4.7,
+      "success_rate": 0.93,
+      "avg_response_ms": 900,
+      "verified": true
+    },
+    {
+      "name": "David's App Performance Agent",
+      "publisher_name": "David Park",
+      "description": "Instruments 기반 앱 성능 분석과 Core Data 최적화 전문 에이전트. 메모리 누수 탐지와 배터리 효율 개선을 수행합니다.",
+      "skill_tags": [
+        "instruments",
+        "core-data",
+        "performance",
+        "memory-optimization",
+        "ios"
+      ],
+      "star_rating": 4.5,
+      "success_rate": 0.91,
+      "avg_response_ms": 1050,
+      "verified": true
+    },
+    {
+      "name": "Jennifer's Cloud Infra Agent",
+      "publisher_name": "Jennifer Liu",
+      "description": "GCP/Kubernetes 기반 클라우드 인프라 설계 전문 에이전트. Terraform IaC와 멀티리전 아키텍처를 담당합니다.",
+      "skill_tags": [
+        "gcp",
+        "kubernetes",
+        "terraform",
+        "devops",
+        "cloud-architecture"
+      ],
+      "star_rating": 4.8,
+      "success_rate": 0.96,
+      "avg_response_ms": 1100,
+      "verified": true
+    },
+    {
+      "name": "Jennifer's ML Ops Agent",
+      "publisher_name": "Jennifer Liu",
+      "description": "Vertex AI와 MLflow를 활용한 ML 파이프라인 구축 전문 에이전트. 모델 배포 자동화와 모니터링을 담당합니다.",
+      "skill_tags": [
+        "vertex-ai",
+        "mlflow",
+        "machine-learning",
+        "data-pipeline",
+        "model-serving"
+      ],
+      "star_rating": 4.6,
+      "success_rate": 0.94,
+      "avg_response_ms": 1300,
+      "verified": true
+    },
+    {
+      "name": "Jennifer's Search Quality Agent",
+      "publisher_name": "Jennifer Liu",
+      "description": "정보 검색과 NLP 기반 검색 품질 개선 전문 에이전트. 검색 랭킹 알고리즘 설계와 쿼리 이해를 담당합니다.",
+      "skill_tags": [
+        "information-retrieval",
+        "nlp",
+        "search-ranking",
+        "text-analysis",
+        "research"
+      ],
+      "star_rating": 4.4,
+      "success_rate": 0.89,
+      "avg_response_ms": 800,
+      "verified": true
+    },
+    {
+      "name": "Sam's Startup Strategy Agent",
+      "publisher_name": "Sam Torres",
+      "description": "YC 배치 경험 기반의 스타트업 전략 수립 에이전트. PMF 검증, GTM 전략, 시드 투자 유치 방법론을 제공합니다.",
+      "skill_tags": [
+        "go-to-market",
+        "fundraising",
+        "startup",
+        "product-market-fit",
+        "strategy"
+      ],
+      "star_rating": 4.9,
+      "success_rate": 0.97,
+      "avg_response_ms": 750,
+      "verified": true
+    },
+    {
+      "name": "Sam's Growth Agent",
+      "publisher_name": "Sam Torres",
+      "description": "데이터 기반 그로스 해킹과 유저 획득 전문 에이전트. 바이럴 루프 설계와 리텐션 최적화를 담당합니다.",
+      "skill_tags": [
+        "growth-hacking",
+        "user-acquisition",
+        "retention",
+        "virality",
+        "marketing"
+      ],
+      "star_rating": 4.7,
+      "success_rate": 0.92,
+      "avg_response_ms": 680,
+      "verified": true
+    },
+    {
+      "name": "Minhye's Market Analysis Agent",
+      "publisher_name": "Minhye Kwon",
+      "description": "McKinsey 방법론 기반 시장 규모 산정과 경쟁사 분석 에이전트. 업계 리포트와 실사(Due Diligence)를 수행합니다.",
+      "skill_tags": [
+        "market-sizing",
+        "competitive-analysis",
+        "due-diligence",
+        "research",
+        "market-analysis"
+      ],
+      "star_rating": 4.8,
+      "success_rate": 0.95,
+      "avg_response_ms": 1200,
+      "verified": true
+    },
+    {
+      "name": "Minhye's Operations Agent",
+      "publisher_name": "Minhye Kwon",
+      "description": "프로세스 최적화와 비용 절감 전문 에이전트. 공급망 효율화와 운영 KPI 설계를 담당합니다.",
+      "skill_tags": [
+        "process-optimization",
+        "cost-reduction",
+        "operations",
+        "efficiency",
+        "supply-chain"
+      ],
+      "star_rating": 4.6,
+      "success_rate": 0.93,
+      "avg_response_ms": 1000,
+      "verified": true
+    },
+    {
+      "name": "Minhye's Digital Transformation Agent",
+      "publisher_name": "Minhye Kwon",
+      "description": "디지털 전환 전략과 혁신 로드맵 수립 전문 에이전트. 변화관리와 조직 디지털화를 담당합니다.",
+      "skill_tags": [
+        "digital-strategy",
+        "innovation",
+        "consulting",
+        "change-management",
+        "transformation"
+      ],
+      "star_rating": 4.7,
+      "success_rate": 0.91,
+      "avg_response_ms": 950,
+      "verified": true
+    }
+  ]
+}

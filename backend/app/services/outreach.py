@@ -17,6 +17,25 @@ class OutreachServiceError(Exception):
     """Raised when an outreach request cannot be processed."""
 
 
+async def _incoming_as_persona(target: Agent, caller_name: str, message: str) -> str:
+    """endpoint가 없는 에이전트를 위한 persona 기반 Groq 수락 응답."""
+    from agents.common import chat
+
+    skills = ", ".join(target.skill_tags or [])
+    system = f"You are {target.name}. {target.description or ''} Expertise: {skills}."
+    prompt = (
+        f"{caller_name}님으로부터 팀 합류 제안을 받았습니다: {message}\n"
+        "1-2 문장으로 전문성을 살린 수락 응답을 한국어로 작성하세요."
+    )
+    try:
+        return await chat(system, prompt)
+    except Exception:
+        return (
+            f"안녕하세요, {caller_name}님. "
+            f"말씀하신 역할로 팀에 합류하겠습니다. 함께 좋은 결과를 만들어 봐요!"
+        )
+
+
 def _thread_subject(caller: Agent, target: Agent) -> str:
     return f"{caller.name} → {target.name} outreach"
 
@@ -96,8 +115,7 @@ async def send_outreach(
             status = "error"
             response_text = f"[시스템] 메시지 전달 실패: {exc}"
     elif not target.endpoint_url:
-        status = "error"
-        response_text = "[시스템] 대상 에이전트에 엔드포인트가 없습니다"
+        response_text = await _incoming_as_persona(target, caller.name, message)
     else:
         try:
             payload = {
