@@ -7,7 +7,7 @@ import contextlib
 import json
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
 from backend.app.database import get_session_factory
@@ -18,20 +18,30 @@ router = APIRouter(prefix="/api/demo", tags=["demo"])
 
 
 @router.get("/stream")
-async def demo_stream() -> StreamingResponse:
-    """SSE 스트림. 연결되면 5막 PM 데모를 실행하며 이벤트를 송출한다.
+async def demo_stream(
+    session_id: str | None = Query(None),
+) -> StreamingResponse:
+    """SSE 스트림. 연결되면 PM 데모를 실행하며 이벤트를 송출한다.
+
+    session_id가 주어지면 해당 세션의 OrchestratorConfig로 동적 데모를 실행한다.
+    session_id가 없거나 만료된 경우 기본 하드코딩 5막 데모를 실행한다.
 
     브라우저에서는 `new EventSource('/api/demo/stream')` 로 구독한다.
     각 이벤트는 `event: <type>\\ndata: <json>\\n\\n` 형식으로 전송된다.
     데모가 완료되거나 에러가 발생하면 `finale` 또는 `error` 이벤트 뒤에
     서버가 스트림을 닫는다.
     """
+    config = None
+    if session_id:
+        from backend.app.routers.orchestrator import get_orchestrator_session
+
+        config = get_orchestrator_session(session_id)
 
     emitter = DemoEventEmitter()
     session_factory = get_session_factory()
 
     async def event_gen() -> AsyncIterator[str]:
-        runner_task = asyncio.create_task(run_demo(session_factory, emitter))
+        runner_task = asyncio.create_task(run_demo(session_factory, emitter, config))
         try:
             async for event in emitter.iter_events():
                 payload = json.dumps(event.data, ensure_ascii=False, default=str)

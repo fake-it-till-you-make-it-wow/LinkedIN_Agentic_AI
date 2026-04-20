@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { API_BASE } from "@/lib/api";
 import { useTypingText } from "./useTypingText";
 
@@ -78,6 +79,14 @@ type DmReceived = {
   status: string;
 };
 
+type GroqSelecting = {
+  act: number;
+  role: string;
+  candidate_count: number;
+  top_candidates: { name: string; final_score: number }[];
+  model: string;
+};
+
 type Finale = {
   mission_complete: boolean;
   team: { id: string; name: string; role: string }[];
@@ -101,6 +110,7 @@ type TimelineItem =
       text: string;
     }
   | { kind: "search_table"; id: string; data: SearchCompleted; started: SearchStarted | null }
+  | { kind: "groq_selecting"; id: string; data: GroqSelecting }
   | { kind: "selection"; id: string; data: Selection }
   | { kind: "invoke_result"; id: string; data: InvokeCompleted }
   | { kind: "dm_out"; id: string; data: DmSent }
@@ -133,6 +143,17 @@ const COLOR_DOTS: Record<LogColor, string> = {
 // ────────────────────────────────────────────────────────────────
 
 export default function DemoPage() {
+  return (
+    <Suspense>
+      <DemoPageInner />
+    </Suspense>
+  );
+}
+
+function DemoPageInner() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("session_id");
+
   const [items, setItems] = useState<TimelineItem[]>([]);
   const [status, setStatus] = useState<"idle" | "running" | "done" | "error">(
     "idle"
@@ -170,7 +191,10 @@ export default function DemoPage() {
     counterRef.current = 0;
     lastSearchStartedRef.current = null;
 
-    const source = new EventSource(`${API_BASE}/api/demo/stream`);
+    const streamUrl = sessionId
+      ? `${API_BASE}/api/demo/stream?session_id=${encodeURIComponent(sessionId)}`
+      : `${API_BASE}/api/demo/stream`;
+    const source = new EventSource(streamUrl);
     sourceRef.current = source;
 
     const bind = <T,>(name: string, handler: (data: T) => void) => {
@@ -221,6 +245,10 @@ export default function DemoPage() {
         data,
         started: lastSearchStartedRef.current,
       });
+    });
+
+    bind<GroqSelecting>("groq_selecting", (data) => {
+      append({ kind: "groq_selecting", id: nextId(), data });
     });
 
     bind<Selection>("selection", (data) => {
@@ -275,7 +303,7 @@ export default function DemoPage() {
       setStatus((prev) => (prev === "running" ? "done" : prev));
       stopStream();
     };
-  }, [append, nextId, status, stopStream]);
+  }, [append, nextId, sessionId, status, stopStream]);
 
   useEffect(() => {
     return () => stopStream();
@@ -336,6 +364,8 @@ function TimelineRow({ item }: { item: TimelineItem }) {
       return <LogLine actor={item.actor} color={item.color} text={item.text} />;
     case "search_table":
       return <SearchTable data={item.data} started={item.started} />;
+    case "groq_selecting":
+      return <GroqSelectingCard data={item.data} />;
     case "selection":
       return <SelectionCard data={item.data} />;
     case "invoke_result":
@@ -445,6 +475,16 @@ function SearchTable({
   data: SearchCompleted;
   started: SearchStarted | null;
 }) {
+  const [visibleCount, setVisibleCount] = useState(0);
+
+  useEffect(() => {
+    setVisibleCount(0);
+    const timers = data.rows.map((_, i) =>
+      setTimeout(() => setVisibleCount(i + 1), i * 160)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [data.rows]);
+
   return (
     <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
       <div className="border-b border-[var(--border)] p-4">
@@ -470,36 +510,86 @@ function SearchTable({
             <th className="px-4 py-2">★</th>
             <th className="px-4 py-2">응답(ms)</th>
             <th className="px-4 py-2">전문성</th>
-            <th className="px-4 py-2">Score</th>
+            <th className="px-4 py-2 min-w-[100px]">Score</th>
           </tr>
         </thead>
         <tbody>
-          {data.rows.map((row, idx) => (
-            <tr
-              key={row.id}
-              className={`border-b border-[var(--border)] last:border-b-0 ${
-                idx === 0 ? "bg-[rgba(77,163,255,0.08)]" : ""
-              }`}
-            >
-              <td className="px-4 py-2 font-medium">
-                {idx === 0 ? "▸ " : ""}
-                {row.name}
-              </td>
-              <td className="px-4 py-2 text-[var(--muted)]">
-                {row.publisher?.name ?? "—"}
-              </td>
-              <td className="px-4 py-2">{row.star_rating.toFixed(1)}</td>
-              <td className="px-4 py-2">{row.avg_response_ms}</td>
-              <td className="px-4 py-2">
-                {row.specialization_match.toFixed(2)}
-              </td>
-              <td className="px-4 py-2 font-semibold text-[var(--accent)]">
-                {row.final_score.toFixed(2)}
-              </td>
-            </tr>
-          ))}
+          {data.rows.map((row, idx) => {
+            const visible = idx < visibleCount;
+            const barColor =
+              row.final_score >= 0.75
+                ? "bg-[#5bd391]"
+                : row.final_score >= 0.5
+                ? "bg-[var(--accent)]"
+                : "bg-[var(--muted)]";
+            return (
+              <tr
+                key={row.id}
+                className={`border-b border-[var(--border)] last:border-b-0 transition-all duration-300 ${
+                  idx === 0 ? "bg-[rgba(77,163,255,0.08)]" : ""
+                } ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"}`}
+              >
+                <td className="px-4 py-2 font-medium">
+                  {idx === 0 ? "▸ " : ""}
+                  {row.name}
+                </td>
+                <td className="px-4 py-2 text-[var(--muted)]">
+                  {row.publisher?.name ?? "—"}
+                </td>
+                <td className="px-4 py-2">{row.star_rating.toFixed(1)}</td>
+                <td className="px-4 py-2">{row.avg_response_ms}</td>
+                <td className="px-4 py-2">
+                  {row.specialization_match.toFixed(2)}
+                </td>
+                <td className="px-4 py-2">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-semibold text-[var(--accent)]">
+                      {row.final_score.toFixed(2)}
+                    </span>
+                    <div className="h-1 w-full rounded-full bg-[var(--border)]">
+                      <div
+                        className={`h-1 rounded-full transition-all duration-700 ${barColor}`}
+                        style={{ width: visible ? `${row.final_score * 100}%` : "0%" }}
+                      />
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function GroqSelectingCard({ data }: { data: GroqSelecting }) {
+  return (
+    <div className="rounded-md border border-[#f5c344] bg-[rgba(245,195,68,0.06)] p-4 text-sm">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="inline-block h-2 w-2 animate-ping rounded-full bg-[#f5c344]" />
+        <span className="font-mono text-xs uppercase tracking-[0.15em] text-[#f5c344]">
+          Groq LLM 분석 중
+        </span>
+        <span className="ml-auto rounded border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--muted)]">
+          {data.model}
+        </span>
+      </div>
+      <p className="mb-3 text-[var(--muted)]">
+        전체 <span className="font-semibold text-[var(--text)]">{data.candidate_count}명</span> 에이전트를 비교해
+        {" "}<span className="font-semibold text-[var(--text)]">{data.role}</span> 역할에 최적인 에이전트를 선별하고 있습니다.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {data.top_candidates.map((c) => (
+          <span
+            key={c.name}
+            className="flex items-center gap-1.5 rounded-[50px] border border-[var(--border)] px-3 py-1 text-xs"
+          >
+            <span className="text-[var(--text)]">{c.name}</span>
+            <span className="text-[#f5c344]">{c.final_score.toFixed(2)}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

@@ -17,10 +17,11 @@
   ├────────────────────────┼──────────────────────────────────────────┤
   │ routers/admin.py       │ /api/admin/...  (시스템 관리용 API)      │
   │ routers/agents.py      │ /api/agents/... (에이전트 CRUD API)      │
-  │ routers/github.py      │ /api/github/... (GitHub 웹훅 수신)       │
-  │ routers/publishers.py  │ /api/publishers/... (퍼블리셔 관리 API) │
-  │ routers/threads.py     │ /api/threads/... (대화 스레드 API)      │
-  └────────────────────────┴──────────────────────────────────────────┘
+  │ routers/github.py        │ /api/github/...       (GitHub 웹훅 수신)          │
+  │ routers/orchestrator.py  │ /api/orchestrator/... (오케스트레이터 등록, Phase 4-B) │
+  │ routers/publishers.py    │ /api/publishers/...   (퍼블리셔 관리 API)           │
+  │ routers/threads.py       │ /api/threads/...      (대화 스레드 API)             │
+  └──────────────────────────┴──────────────────────────────────────────────────────┘
 
 【API 문서 자동 생성】
   서버 실행 후 http://localhost:8000/docs 에서 Swagger UI로 모든 API를 확인할 수 있습니다.
@@ -46,7 +47,9 @@ from backend.app.routers.admin import router as admin_router
 from backend.app.routers.agents import router as agents_router
 from backend.app.routers.demo import router as demo_router
 from backend.app.routers.github import router as github_router
+from backend.app.routers.orchestrator import router as orchestrator_router
 from backend.app.routers.publishers import router as publishers_router
+from backend.app.routers.teams import router as teams_router
 from backend.app.routers.threads import router as threads_router
 
 
@@ -104,7 +107,9 @@ def create_app() -> FastAPI:
     app.include_router(agents_router)  # 에이전트 CRUD
     app.include_router(demo_router)  # Phase 3-E 라이브 데모 SSE
     app.include_router(github_router)  # GitHub 웹훅
+    app.include_router(orchestrator_router)  # Phase 4-B 오케스트레이터 등록
     app.include_router(publishers_router)  # 퍼블리셔 관리
+    app.include_router(teams_router)  # 결성된 팀 관리
     app.include_router(threads_router)  # 대화 스레드
 
     # ── 헬스체크 엔드포인트 ────────────────────────────────────────────────

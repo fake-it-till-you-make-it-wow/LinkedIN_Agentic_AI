@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import pathlib
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -13,6 +15,31 @@ from backend.app.models import Agent, Publisher
 
 SEED_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "agentlinkedin-phase1")
 PUBLISHER_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "agentlinkedin-publishers")
+EXTRA_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "agentlinkedin-phase5")
+
+_JSON_PATH = pathlib.Path(__file__).parent.parent / "agents" / "seed_agents.json"
+
+
+def _load_extra() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Load additional publishers and agents from agents/seed_agents.json."""
+    if not _JSON_PATH.exists():
+        return [], []
+    data: dict[str, Any] = json.loads(_JSON_PATH.read_text(encoding="utf-8"))
+    extra_pubs: list[dict[str, Any]] = []
+    pub_id_map: dict[str, str] = {}
+    for pub in data.get("publishers", []):
+        pub_id = str(uuid.uuid5(PUBLISHER_NAMESPACE, pub["name"]))
+        pub_id_map[pub["name"]] = pub_id
+        extra_pubs.append({**pub, "id": pub_id})
+    extra_agents: list[dict[str, Any]] = []
+    for agent_data in data.get("agents", []):
+        payload = dict(agent_data)
+        pub_name = payload.pop("publisher_name", None)
+        payload["id"] = str(uuid.uuid5(EXTRA_NAMESPACE, payload["name"]))
+        payload["publisher_id"] = pub_id_map.get(pub_name or "")
+        payload.setdefault("endpoint_url", None)
+        extra_agents.append(payload)
+    return extra_pubs, extra_agents
 
 
 def _seed_id(name: str) -> str:
@@ -179,10 +206,13 @@ def main() -> None:
     configure_database()
     init_database()
     now = datetime.now(UTC)
+    extra_pubs, extra_agents = _load_extra()
+    all_publishers = SEED_PUBLISHERS + extra_pubs
+    all_agents = SEED_AGENTS + extra_agents
     with get_session_factory()() as session:
-        for payload in SEED_PUBLISHERS:
+        for payload in all_publishers:
             publisher = session.get(Publisher, payload["id"])
-            verified_at = now if payload["verified"] else None
+            verified_at = now if payload.get("verified") else None
             if publisher is None:
                 session.add(Publisher(**payload, verified_at=verified_at))
                 continue
@@ -190,7 +220,7 @@ def main() -> None:
                 setattr(publisher, field, value)
             publisher.verified_at = verified_at
 
-        for payload in SEED_AGENTS:
+        for payload in all_agents:
             agent = session.scalar(select(Agent).where(Agent.id == payload["id"]))
             if agent is None:
                 session.add(Agent(**payload))
@@ -199,7 +229,7 @@ def main() -> None:
                 setattr(agent, field, value)
         session.commit()
 
-    print(f"Seeded {len(SEED_PUBLISHERS)} publishers and {len(SEED_AGENTS)} agents.")
+    print(f"Seeded {len(all_publishers)} publishers and {len(all_agents)} agents.")
     print(f"PM_AGENT_ID={_seed_id('PM Youngsu')}")
 
 

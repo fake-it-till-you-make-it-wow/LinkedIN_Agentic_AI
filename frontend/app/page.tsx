@@ -1,112 +1,88 @@
-import Link from "next/link";
-import { listAgents, type Agent } from "@/lib/api";
+import OrchestratorUpload from "@/components/OrchestratorUpload";
 
-export const dynamic = "force-dynamic";
+const HOW_IT_WORKS = [
+  {
+    step: "01",
+    title: "템플릿 다운로드",
+    description:
+      "제공된 Python 템플릿을 받아 TASK_DESCRIPTION과 TEAM_REQUIREMENTS를 작성합니다. 어떤 팀이 필요한지 자연어로 정의하세요.",
+  },
+  {
+    step: "02",
+    title: "파일 업로드",
+    description:
+      "작성한 .py 파일을 업로드하면 서버가 안전하게 파싱합니다. exec 없이 AST로만 처리되므로 코드가 실행되지 않습니다.",
+  },
+  {
+    step: "03",
+    title: "팀 섭외 시작",
+    description:
+      "Groq AI가 역할별 검색 태그를 생성하고 최적 에이전트를 선별합니다. 섭외 과정이 실시간 스트리밍으로 펼쳐집니다.",
+  },
+];
 
-function formatPercent(value: number): string {
-  return `${(value * 100).toFixed(0)}%`;
-}
-
-function ScoreBadge({ label, value }: { label: string; value: number }) {
+export default function HomePage() {
   return (
-    <div className="flex flex-col items-start rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-      <span className="text-xs uppercase tracking-wide text-[var(--muted)]">
-        {label}
-      </span>
-      <span className="text-sm font-medium">{value.toFixed(2)}</span>
-    </div>
-  );
-}
-
-function AgentCard({ agent }: { agent: Agent }) {
-  return (
-    <Link
-      href={`/agents/${agent.id}`}
-      className="block rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 transition hover:border-[var(--accent)]"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">{agent.name}</h2>
-          {agent.publisher ? (
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              by {agent.publisher.name}
-              {agent.publisher.verified ? " · verified" : ""}
-            </p>
-          ) : (
-            <p className="mt-1 text-sm text-[var(--muted)]">Unpublished</p>
-          )}
-        </div>
-        <span className="shrink-0 rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]">
-          v{agent.version}
-        </span>
-      </div>
-      {agent.description ? (
-        <p className="mt-3 line-clamp-3 text-sm text-[var(--text)]">
-          {agent.description}
+    <section className="flex flex-col gap-20">
+      {/* Hero */}
+      <div
+        className="relative -mx-6 -mt-12 px-6 pt-20 pb-16 text-center overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(77,163,255,0.14) 0%, transparent 70%)",
+        }}
+      >
+        <p className="mb-4 font-mono text-xs uppercase tracking-[0.3em] text-[var(--accent)]">
+          AI Agent Platform
         </p>
-      ) : null}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {agent.skill_tags.slice(0, 6).map((tag) => (
-          <span
-            key={tag}
-            className="rounded-full border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted)]"
-          >
-            {tag}
-          </span>
-        ))}
+        <h1
+          className="text-5xl font-semibold leading-[1.08] tracking-[-0.04em] md:text-6xl"
+          style={{ letterSpacing: "-0.04em" }}
+        >
+          AI 에이전트 팀을
+          <br />
+          자율적으로 구성하세요
+        </h1>
+        <p className="mx-auto mt-5 max-w-lg text-base font-light leading-relaxed text-[var(--muted)]"
+           style={{ letterSpacing: "-0.01em" }}>
+          오케스트레이터 에이전트가 디렉터리에서 최적의 팀원을 검색·평가·섭외합니다.
+          당신은 목표만 정의하면 됩니다.
+        </p>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <ScoreBadge label="Trust" value={agent.trust_score} />
-        <ScoreBadge label="Community" value={agent.community_score} />
-        <ScoreBadge label="Success" value={agent.success_rate} />
-      </div>
-      <div className="mt-3 flex justify-between text-xs text-[var(--muted)]">
-        <span>★ {agent.star_rating.toFixed(1)}</span>
-        <span>{agent.total_calls} calls</span>
-        <span>{formatPercent(agent.success_rate)} success</span>
-      </div>
-    </Link>
-  );
-}
 
-export default async function HomePage() {
-  let agents: Agent[] = [];
-  let errorMessage: string | null = null;
-  try {
-    agents = await listAgents();
-  } catch (error) {
-    errorMessage =
-      error instanceof Error ? error.message : "Failed to load agents";
-  }
-
-  return (
-    <section>
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Directory</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Browse verified AI agents and their publishers.
-          </p>
-        </div>
-        <span className="text-sm text-[var(--muted)]">
-          {agents.length} agents
-        </span>
-      </div>
-      {errorMessage ? (
-        <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
-          Backend unreachable: {errorMessage}
-        </div>
-      ) : agents.length === 0 ? (
-        <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
-          No agents registered yet.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {agents.map((agent) => (
-            <AgentCard key={agent.id} agent={agent} />
+      {/* How it works */}
+      <div>
+        <p className="mb-8 text-center font-mono text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+          어떻게 작동하나요
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {HOW_IT_WORKS.map(({ step, title, description }) => (
+            <div
+              key={step}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-7"
+            >
+              <div
+                className="mb-4 font-mono text-3xl font-bold text-[var(--accent)]"
+                style={{ opacity: 0.45, letterSpacing: "-0.04em" }}
+              >
+                {step}
+              </div>
+              <h3
+                className="mb-2 text-base font-semibold"
+                style={{ letterSpacing: "-0.02em" }}
+              >
+                {title}
+              </h3>
+              <p className="text-sm font-light leading-relaxed text-[var(--muted)]">
+                {description}
+              </p>
+            </div>
           ))}
         </div>
-      )}
+      </div>
+
+      {/* Orchestrator upload */}
+      <OrchestratorUpload />
     </section>
   );
 }

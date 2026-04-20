@@ -59,6 +59,13 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+export type OrchestratorUploadResult = {
+  session_id: string;
+  task_description: string;
+  team_requirements: { role: string; count?: number }[];
+  agent_name: string;
+};
+
 export async function listAgents(): Promise<Agent[]> {
   return fetchJson<Agent[]>("/api/agents");
 }
@@ -69,4 +76,23 @@ export async function getAgent(id: string): Promise<Agent> {
 
 export async function getAgentStats(id: string): Promise<AgentStats> {
   return fetchJson<AgentStats>(`/api/agents/${id}/stats`);
+}
+
+export async function uploadOrchestrator(
+  file: File,
+): Promise<OrchestratorUploadResult> {
+  const form = new FormData();
+  form.append("file", file);
+  const response = await fetch(`${API_BASE}/api/orchestrator/upload`, {
+    method: "POST",
+    body: form,
+  });
+  if (!response.ok) {
+    const detail = await response
+      .json()
+      .then((d: { detail?: string }) => d.detail ?? response.statusText)
+      .catch(() => response.statusText);
+    throw new Error(detail);
+  }
+  return (await response.json()) as OrchestratorUploadResult;
 }

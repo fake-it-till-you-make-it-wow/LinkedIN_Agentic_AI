@@ -40,6 +40,18 @@
   - 리서치 검색 → invoke → DM
   - 코드 검색 → invoke → DM
   - 최종 팀 구성 요약 패널
+- **Phase 4-A** ✅ Groq Planner 서비스 + 동적 Demo Runner
+  - `groq_planner.py` — OrchestratorConfig, generate_search_queries, select_best_agent
+  - `demo_runner.py` — config 파라미터화, Groq 동적 검색/섭외 경로 추가
+  - `demo.py` — `GET /api/demo/stream?session_id=` 옵션 파라미터
+- **Phase 4-B** ✅ 업로드 엔드포인트 + AST 파서 + 세션 스토어
+  - `orchestrator_parser.py` — ast.parse() 기반 안전한 Python 파일 파싱
+  - `routers/orchestrator.py` — POST /api/orchestrator/upload, GET /api/orchestrator/template
+  - `agents/orchestrator_template.py` — 사용자 다운로드용 템플릿
+- **Phase 4-C** ✅ 프론트엔드 통합
+  - `components/OrchestratorUpload.tsx` — 드래그앤드롭 업로드 + 파싱 미리보기 + 팀 섭외 시작
+  - `app/page.tsx` — 메인 페이지 상단 오케스트레이터 등록 UI
+  - `app/demo/page.tsx` — session_id URL 파라미터로 개인화 데모 스트리밍
 
 ### 완료된 평가
 
@@ -53,33 +65,38 @@
   - v2: 11개
   - Phase 1.5: 24개
   - Phase 2-A 이후: 27개 → 29개 → 30개 → 33개 (Phase 2.1 시점)
+  - Phase 3-A/B: 37개 → 41개
+  - **Phase 4-A/B: 43개 → 46개** ✅
 
 ### 현재 위치 (기준일: 2026-04-20)
 
-- **진행 중 Phase**: Phase 3 (3-E 완료)
-- **가장 최근 완료**: Phase 3-E (Live Demo MVP — 브라우저 SSE 5막 데모)
-- **다음 예정**: Phase 4 (운영화/확장 — YouTube layer, 인증, Postgres, 배포)
-- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D, 3-A, 3-B, 3-C, 3-E
-- **테스트 수**: 41 passing (`uv run pytest` 기준, Phase 3-E는 신규 SSE 라우터 + 인라인 워커 추출 — 기존 invoke/outreach 시그니처 호환 유지로 회귀 없음)
-- **PR 체인 (stacked)**: #1 → #2 → #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10(phase-3c-web-ui) → #11(phase-3e-live-demo)
+- **진행 중 Phase**: Phase 4 (4-A/B/C 완료)
+- **가장 최근 완료**: Phase 4-C (프론트엔드 오케스트레이터 등록 UI)
+- **다음 예정**: Phase 4-나머지 — YouTube layer, 인증, Postgres, 배포
+- **누적 완료 페이즈**: Phase 0, 1, 1-Eval, 1.5 (A~D), 2 (2-A/B/C/D), 2.1, 3-D, 3-A, 3-B, 3-C, 3-E, **4-A, 4-B, 4-C**
+- **테스트 수**: 46 passing (`uv run pytest` 기준)
+- **PR 체인 (stacked)**: #1 → #2 → ... → #11(phase-3e-live-demo) → #12(phase-4-orchestrator)
   - 모두 open 상태 (main 머지는 전체 검토 후 일괄 처리 예정)
-- **남은 경로 요약**: Phase 4 착수 필요 — YouTube layer 구현, 인증·권한, SQLite→Postgres, 배포 파이프라인, 퍼블리셔 self-serve
+- **남은 경로 요약**: YouTube layer 구현, 인증·권한, SQLite→Postgres, 배포 파이프라인, 퍼블리셔 self-serve
 
 ---
 
 ## 2. Phase 상태판
 
-| Phase        | 이름                  | 상태    | 설명                                                                           |
-| ------------ | --------------------- | ------- | ------------------------------------------------------------------------------ |
-| Phase 0      | 문서/하네스/기본 계획 | 완료    | PRD/TSD/TEST_CASE/CLAUDE 정리 및 초기 계획 수립                                |
-| Phase 1      | PoC 구현              | 완료    | 백엔드, MCP, seed agents, PM demo 기본 흐름 구현                               |
-| Phase 1-Eval | 평가 및 1차 리팩토링  | 완료    | `docs/EVAL_PHASE1.md`의 주요 Major 항목 반영                                   |
-| Phase 1.5    | 잔여 재작업           | 완료    | 테스트 보강, seed/TSD 정합성 재검증, startup 패턴 정리, Research findings 파싱 |
-| Phase 2      | 신뢰/선택 고도화      | 완료    | 동적 평판, Publisher 1급 엔티티, Review 승격                                   |
-| Phase 2.1    | 운영/가시성           | 완료    | agent stats + admin health 엔드포인트                                          |
-| Phase 3      | 생태계 확장           | 진행 중 | 3-A/B/C/D/E 완료 (YouTube layer는 Phase 4로 이전)                              |
-| Phase 3-E    | Live Demo MVP         | 완료    | 브라우저에서 5막 PM 데모 실시간 관전 (SSE + 인라인 워커)                       |
-| Phase 4      | 운영화/확장 (후보)    | 예정    | YouTube layer 구현, 인증, Postgres, 배포, 퍼블리셔 self-serve                  |
+| Phase          | 이름                     | 상태 | 설명                                                                           |
+| -------------- | ------------------------ | ---- | ------------------------------------------------------------------------------ |
+| Phase 0        | 문서/하네스/기본 계획    | 완료 | PRD/TSD/TEST_CASE/CLAUDE 정리 및 초기 계획 수립                                |
+| Phase 1        | PoC 구현                 | 완료 | 백엔드, MCP, seed agents, PM demo 기본 흐름 구현                               |
+| Phase 1-Eval   | 평가 및 1차 리팩토링     | 완료 | `docs/EVAL_PHASE1.md`의 주요 Major 항목 반영                                   |
+| Phase 1.5      | 잔여 재작업              | 완료 | 테스트 보강, seed/TSD 정합성 재검증, startup 패턴 정리, Research findings 파싱 |
+| Phase 2        | 신뢰/선택 고도화         | 완료 | 동적 평판, Publisher 1급 엔티티, Review 승격                                   |
+| Phase 2.1      | 운영/가시성              | 완료 | agent stats + admin health 엔드포인트                                          |
+| Phase 3        | 생태계 확장              | 완료 | 3-A/B/C/D/E 완료 (YouTube layer는 Phase 4로 이전)                              |
+| Phase 3-E      | Live Demo MVP            | 완료 | 브라우저에서 5막 PM 데모 실시간 관전 (SSE + 인라인 워커)                       |
+| Phase 4-A      | Groq 동적 오케스트레이터 | 완료 | Groq로 검색 쿼리 생성 + 최적 에이전트 선별, demo_runner 파라미터화             |
+| Phase 4-B      | 업로드 엔드포인트        | 완료 | Python 템플릿 AST 파서, 세션 스토어, /api/orchestrator/upload                  |
+| Phase 4-C      | 프론트엔드 통합          | 완료 | OrchestratorUpload 컴포넌트, 메인 페이지 등록 UI, demo 페이지 session_id 연동  |
+| Phase 4-나머지 | 운영화/확장 (후보)       | 예정 | YouTube layer 구현, 인증, Postgres, 배포, 퍼블리셔 self-serve                  |
 
 ---
 
@@ -263,7 +280,7 @@
 
 ### Phase 3 — 생태계 확장
 
-상태: 진행 중 (서브페이즈로 분할 실행)
+상태: 완료 (서브페이즈 3-A/B/C/D/E 모두 종료)
 
 목표:
 
@@ -333,20 +350,73 @@
 - 아키텍처 원칙: 공유 엔티티는 Agent만, trust vs influence 점수 분리, 소프트 참조로 실패 격리.
 - 코드/스키마 변경 없음 (문서 전용).
 
-### Phase 4 — 운영화/확장 (후보)
+### Phase 4 — 오케스트레이터 등록 + Groq 동적 팀 섭외 / 운영화/확장
 
-상태: 예정 (3-A/B/C 이후 착수)
+#### Phase 4-A — Groq Planner 서비스 + 동적 Demo Runner ✅
 
-목표:
+상태: 완료 (기준일: 2026-04-20)
 
-- 3-A/B/C가 닫히면 "계획상 MVP"만 완성된다. 실제 운영/확산을 위한 축을 별도 페이즈로 둔다.
+완료 기록:
+
+- `backend/app/services/groq_planner.py` 신설
+  - `OrchestratorConfig` dataclass (task_description, team_requirements, agent_name, groq_model)
+  - `generate_search_queries(task_desc, roles, model)` — Groq로 role별 검색 태그 생성, 실패 시 role 이름 fallback
+  - `select_best_agent(candidates, role, task_desc, model)` — Groq로 최적 에이전트 선별, 실패 시 candidates[0] fallback
+  - `agents.common.chat()` 재사용 (수정 금지 규칙 준수)
+- `backend/app/services/demo_runner.py` 수정
+  - `run_demo(session_factory, emitter, config=None)` 시그니처 추가
+  - config 없으면 기존 하드코딩 5막 데모 유지 (회귀 없음)
+  - config 있으면 `_run_config_demo()` 경유 — team_requirements 순회하며 Groq 동적 검색/섭외
+  - `_run_search_act()` 에 `task_desc`, `groq_model` 파라미터 추가 및 `query_text` semantic 지원
+- `backend/app/routers/demo.py` 수정
+  - `GET /api/demo/stream?session_id=` 옵션 파라미터 추가
+  - session_id 있으면 세션 스토어에서 OrchestratorConfig 조회 후 전달
+- 테스트 2개 추가 (총 43개): Groq 성공(mock), Groq 실패 fallback
+
+#### Phase 4-B — 업로드 엔드포인트 + AST 파서 + 세션 스토어 ✅
+
+상태: 완료 (기준일: 2026-04-20)
+
+완료 기록:
+
+- `backend/app/services/orchestrator_parser.py` 신설
+  - `parse_orchestrator_file(content)` — `ast.parse()` 기반 안전한 파싱 (exec/eval 미사용)
+  - 추출 대상: `TASK_DESCRIPTION`, `TEAM_REQUIREMENTS`, `AGENT_NAME`, `GROQ_MODEL`
+  - 누락/타입 오류 시 `ValueError` / `TypeError` 발생
+- `backend/app/routers/orchestrator.py` 신설
+  - `POST /api/orchestrator/upload` — 멀티파트 `.py` 파일 수신 → 파서 → 세션 ID 발급
+  - `GET /api/orchestrator/template` — 템플릿 파일 다운로드
+  - 인메모리 세션 스토어 (`_sessions: dict[str, OrchestratorConfig]`), TTL 30분
+- `agents/orchestrator_template.py` 신설 — 사용자 다운로드용 템플릿
+- `backend/app/main.py` 수정 — orchestrator 라우터 등록
+- 테스트 3개 추가 (총 46개): 정상 파싱, TASK_DESCRIPTION 누락, TEAM_REQUIREMENTS 타입 오류
+
+#### Phase 4-C — 프론트엔드 통합 ✅
+
+상태: 완료 (기준일: 2026-04-20)
+
+완료 기록:
+
+- `frontend/components/OrchestratorUpload.tsx` 신설 (Client Component)
+  - 드래그앤드롭 / 클릭 파일 선택 → `POST /api/orchestrator/upload` 호출
+  - 파싱 결과 미리보기 (task 설명, role 배지)
+  - "팀 섭외 시작" → `/demo?session_id=xxx` 이동
+  - "템플릿 다운로드" 링크 내장
+- `frontend/app/page.tsx` 수정 — 상단에 `<OrchestratorUpload />` 삽입
+- `frontend/app/demo/page.tsx` 수정 — `useSearchParams()`로 `session_id` 읽어 EventSource URL에 포함
+- `frontend/lib/api.ts` 수정 — `OrchestratorUploadResult` 타입 + `uploadOrchestrator(file)` 함수 추가
+- 기존 /demo 기본 흐름 (session_id 없음) 회귀 없음 확인
+
+#### Phase 4-나머지 — 운영화/확장 (후보)
+
+상태: 예정
 
 후보 작업:
 
 - **YouTube layer 구현**: Content/Subscription/ContentReaction 테이블 + feed endpoint + influence_score 노출 (Phase 3-D 문서에서 설계만 됨).
 - **인증/권한**: 현재 UUID 무인증 모델 → Publisher self-serve 등록에 필요한 최소 인증 계층.
 - **운영 신뢰성**: rate limiting, structured logging, error tracking.
-- **스케일**: SQLite → Postgres 이관, 임베딩 저장소(pgvector 등).
+- **스케일**: SQLite → Postgres 이관 / Supabase 연동, 임베딩 저장소(pgvector 등).
 - **배포**: CI/CD 파이프라인, 호스팅 환경 결정.
 - **생태계 유입**: seed 5개 이상 커뮤니티 유입 경로, 퍼블리셔 self-serve 등록 플로우.
 
@@ -354,13 +424,15 @@
 
 ## 6. 작업 순서 제안
 
-Phase 2 및 Phase 2.1 완료, Phase 3-D 완료. 다음 실행 순서:
-
-1. Phase 3-D 멀티 레이어 설계 문서화 — 완료
-2. Phase 3-A 의미 기반 검색 도입 — 다음 순번
-3. Phase 3-B GitHub layer 최소 구현
-4. Phase 3-C Web UI (Next.js) 추가
-5. Phase 4 운영화/확장 착수 (YouTube layer, 인증, Postgres, 배포)
+1. Phase 3-D 멀티 레이어 설계 문서화 — ✅ 완료
+2. Phase 3-A 의미 기반 검색 도입 — ✅ 완료
+3. Phase 3-B GitHub layer 최소 구현 — ✅ 완료
+4. Phase 3-C Web UI (Next.js) 추가 — ✅ 완료
+5. Phase 3-E Live Demo MVP (SSE 스트리밍) — ✅ 완료
+6. Phase 4-A Groq Planner + 동적 Demo Runner — ✅ 완료
+7. Phase 4-B 업로드 엔드포인트 + AST 파서 — ✅ 완료
+8. Phase 4-C 프론트엔드 오케스트레이터 등록 UI — ✅ 완료
+9. **Phase 4-나머지** 운영화/확장 착수 — 다음 순번 (YouTube layer, 인증, Postgres/Supabase, 배포)
 
 ---
 
@@ -373,3 +445,29 @@ Phase 2 및 Phase 2.1 완료, Phase 3-D 완료. 다음 실행 순서:
   - 테스트 수
   - 완료된 Phase 상태
   - 다음 Codex 작업 단계
+
+## 8. 참고
+
+- [x] 메인 웹 페이지 유저가 들어오자마자 자신의 **오케스트레이터**agent를 선택하고 해당 agent가 팀을 섭외하는 매커니즘(웹 UI적) -> 메인 웹 페이지에 들어오자마자 자신의 **오케스트레이터**agent를 등록하는 UI가 보여줬으면 좋겠어. 추가적으로 agent가 없는 사람들을 위해 오케스트레이터 agent를 선택할 수 있는 기능도 추가해줘.
+- [] publisher추가(애플 개발자, 구글 개발자, yc 전문가, 맥킨지 전문가)들이 올린 agent들도 추가해서 팀 섭외에 반영하고 싶어.
+- [x] 섭외 매커니즘이 어떻게 되는지 알려주고, star수와 구독자 수 그리고 **오케스트레이터**agent의 md파일에 현재 진행하고자하는 프로젝트와의 적합도를 판단하는 연산과정을 추가해줘.
+- [x] 터미널단에서 자신의 **오케스트레이터**agent가 있는 디렉토리의 경로를 알려주면 해당 agent가 팀을 섭외하는 매커니즘(cli적)
+- [X]**오케스트레이터**agent는 팀을 섭외하는 역할을 하는 agent이다. 예시로는 현재 내 demo로는 agent_pm.py의 역할을 인간 사용자마다 가지고있다고 가정한다.
+- [X]Groq api를 활용해서 agent가 팀을 섭외하는 매커니즘을 구현할 수 있을 것 같아. 예시로는 agent_pm.py에서 검색 단계에서 Groq api를 활용해서 검색 결과를 받아오는 형태로 구현할 수 있을 것 같아.
+
+- [] agent를 모으자
+- []에이전트에게 역할만 부여 -> 1단
+- [] 에이전트들을 찾아야해. -> 2단 진짜 코드 에이전트
+
+## 9. 추가사항
+
+- 클로드 코드 skill -> agentLinkedIn cli를 만들어서 연동하고 -> cli단에서 오케스트레이터 업로드한 후에 live demo가 가능하도록 하는 형태로 구현하면 좋을 것 같아. (cli에서 업로드한 시나리오를 바탕으로 demo에서 섭외하는 형태)
+- supabase연동
+
+## 10. 공부방향
+
+● 현재 invoke 방식 중 어느 수준을 원하시나요?
+→ 인라인 워커 추가 (Recommended)
+● 인라인 워커를 만든다면 각 에이전트의 성격(persona)을 어떻게
+부여할까요
+→ 에이전트별 전용 프롬프트 (Recommended)

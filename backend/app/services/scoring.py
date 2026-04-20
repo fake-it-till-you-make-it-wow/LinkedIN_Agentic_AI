@@ -8,6 +8,12 @@ from dataclasses import dataclass
 from backend.app.models import Agent
 from backend.app.services.semantic import compute_semantic_scores
 
+# 가중치 5개 의미:
+# - star_rating: 사용자 리뷰 별점(0~5)을 0~1로 정규화해 반영
+# - success_rate: invoke 성공률(0~1) 반영
+# - response_speed: 평균 응답시간(ms)을 속도 점수(0~1)로 변환해 반영
+# - specialization: 요청 태그와 agent.skill_tags 일치도(0~1) 반영
+# - semantic: query_text와 에이전트 설명/프로필의 의미 유사도(0~1) 반영
 DEFAULT_WEIGHTS: dict[str, float] = {
     "star_rating": 0.35,
     "success_rate": 0.25,

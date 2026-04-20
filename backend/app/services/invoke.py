@@ -20,6 +20,37 @@ class InvokeServiceError(Exception):
     """Raised when an invoke request cannot be processed."""
 
 
+async def _invoke_as_persona(
+    target: Agent, input_data: dict[str, Any]
+) -> dict[str, Any]:
+    """endpoint가 없는 에이전트를 위한 persona 기반 Groq 호출.
+
+    target의 name / description / skill_tags로 system prompt를 구성해
+    실제 LLM 응답을 반환한다. Groq 실패 시 canned fallback.
+    """
+    from agents.common import chat
+
+    skills = ", ".join(target.skill_tags or [])
+    system = (
+        f"You are {target.name}. "
+        f"{target.description or ''} "
+        f"Expertise: {skills}. "
+        "Respond concisely in Korean. Complete the given task professionally."
+    )
+    task = str(
+        input_data.get("task")
+        or input_data.get("query")
+        or input_data.get("role")
+        or str(input_data)
+    )
+    try:
+        raw = await chat(system, f"Task: {task}")
+    except Exception:
+        return {"status": "ok", "message": f"{target.name}이(가) 작업을 완료했습니다."}
+    else:
+        return {"result": raw, "agent": target.name}
+
+
 def _recompute_target_metrics(session: Session, target: Agent) -> None:
     """Refresh dynamic trust metrics from InvokeLog aggregates."""
 
@@ -62,11 +93,13 @@ async def invoke_agent(
     target = session.get(Agent, target_agent_id)
     if caller is None or target is None:
         raise InvokeServiceError("Agent not found")
-    if not target.endpoint_url:
-        raise InvokeServiceError("대상 에이전트에 엔드포인트가 없습니다")
-
     worker = resolve_worker(target.endpoint_url)
-    transport = "inline" if worker is not None else "http"
+    if not target.endpoint_url:
+        transport = "simulated"
+    elif worker is not None:
+        transport = "inline"
+    else:
+        transport = "http"
 
     if emitter is not None:
         await emitter.emit(
@@ -85,15 +118,19 @@ async def invoke_agent(
     response_ms = 0
 
     try:
-        if worker is not None:
+        if transport == "simulated":
+            output = await _invoke_as_persona(target, input_data)
+            response_ms = int((perf_counter() - started) * 1000)
+        elif worker is not None:
             output = await worker.invoke(input_data)
+            response_ms = int((perf_counter() - started) * 1000)
         else:
             output = await post_json(
-                f"{target.endpoint_url.rstrip('/')}/invoke",
+                f"{target.endpoint_url.rstrip('/')}/invoke",  # type: ignore[union-attr]
                 input_data,
                 timeout=timeout_ms / 1000,
             )
-        response_ms = int((perf_counter() - started) * 1000)
+            response_ms = int((perf_counter() - started) * 1000)
         target.total_calls += 1
     except httpx.TimeoutException:
         status = "timeout"

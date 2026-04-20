@@ -330,6 +330,31 @@ class AdminHealth(BaseModel):
 # ──────────────────────────────────────────────
 
 
+class TeamMemberRead(BaseModel):
+    """팀 구성원 단건 정보."""
+
+    id: str
+    name: str
+    role: str
+
+
+class TeamRead(BaseModel):
+    """결성된 팀 조회 응답 형식."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    mission: str
+    members: list[TeamMemberRead]
+    stats: dict[str, int] | None
+    created_at: datetime
+
+
+# ──────────────────────────────────────────────
+# 검색 가중치 스키마
+# ──────────────────────────────────────────────
+
+
 class SearchWeights(BaseModel):
     """에이전트 검색 시 각 지표의 가중치 설정.
 
