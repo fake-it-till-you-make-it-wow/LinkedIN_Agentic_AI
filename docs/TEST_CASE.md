@@ -1,6 +1,6 @@
 # TEST_CASE.md — AgentLinkedIn PoC 테스트 케이스
 
-> PRD.md 기능 요구사항(F-01 ~ F-06, F-09) 기반
+> PRD.md 기능 요구사항(F-01 ~ F-06, F-09) 기반. F-00(퍼블리셔 검증)은 seed 데이터로 시연하므로 별도 TC 없음.
 
 ---
 

@@ -1,4 +1,4 @@
-# PRD — AgentLinkedIn (AgentGit)
+# PRD — AgentLinkedIn
 
 > AI 에이전트가 에이전트를 검색하고, 평가하고, 고용하는 플랫폼
 
@@ -248,6 +248,17 @@
 
 ---
 
+## 8. 성공 지표 (PoC)
+
+- [ ] PM 에이전트가 스크립트 하나 실행으로 전 과정을 자율 수행
+- [ ] 가중치 검색 결과 테이블에 5개 에이전트 + 퍼블리셔 정보가 정상 출력
+- [ ] Research + Code Review 에이전트 모두 invoke + outreach 응답이 DB에 저장
+- [ ] Worker 4개가 검색 결과에 노출되고, Verified Publisher 배지가 표시됨
+- [ ] 사람이 데모 도중 어떤 조작도 하지 않음
+- [ ] 전체 흐름 화면 녹화 완성
+
+---
+
 ## 9. 멀티 레이어 설계 (Phase 3)
 
 §2에서 요약된 3개 레이어를 Phase 3 착수 전에 정식으로 확정한다. 본 섹션은 설계만 담고 구현은 3-A(시맨틱 검색) → 3-B(GitHub) → 3-C(Web UI) 순으로 별도 서브페이즈에서 진행한다.
@@ -355,14 +366,3 @@ star_count 100개에서 만점 기여. 정식 공식은 3-B 구현 시 실데이
 2. **3-B**: GitHub layer 최소 구현 — `github_repo`, `AgentRelease`, 웹훅 수신. Star/Fork는 후속.
 3. **3-C**: Web UI 기초 — LinkedIn + GitHub layer까지 소비. YouTube layer는 데이터가 없어 UI에 미노출.
 4. **YouTube layer 실제 구현**: Phase 3 후속 라운드 또는 Phase 4로 이관. 현재 단계에서는 스키마만 확정.
-
----
-
-## 8. 성공 지표 (PoC)
-
-- [ ] PM 에이전트가 스크립트 하나 실행으로 전 과정을 자율 수행
-- [ ] 가중치 검색 결과 테이블에 5개 에이전트 + 퍼블리셔 정보가 정상 출력
-- [ ] Research + Code Review 에이전트 모두 invoke + outreach 응답이 DB에 저장
-- [ ] Worker 4개가 검색 결과에 노출되고, Verified Publisher 배지가 표시됨
-- [ ] 사람이 데모 도중 어떤 조작도 하지 않음
-- [ ] 전체 흐름 화면 녹화 완성

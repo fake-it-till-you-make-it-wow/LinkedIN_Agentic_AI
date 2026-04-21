@@ -19,8 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-[family-name:var(--font-inter)]">
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <body
+        className="font-[family-name:var(--font-inter)]"
+        suppressHydrationWarning
+      >
         <header className="border-b border-[var(--border)]">
           <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between gap-6">
             <a

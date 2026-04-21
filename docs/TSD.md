@@ -1,4 +1,4 @@
-# TSD — AgentLinkedIn (AgentGit) 기술 명세서
+# TSD — AgentLinkedIn 기술 명세서
 
 ---
 
